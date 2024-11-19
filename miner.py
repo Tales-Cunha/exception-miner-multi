@@ -137,7 +137,7 @@ def collect_parser(files, project_name, language, args):
         "py": ["file", "function", "func_body", "str_uncaught_exceptions", "n_try_except", "n_try_pass", "n_finally",
                  "n_generic_except", "n_raise", "n_captures_broad_raise", "n_captures_try_except_raise", "n_captures_misplaced_bare_raise",
                  "n_try_else", "n_try_return", "str_except_identifiers", "str_raise_identifiers", "str_except_block", "n_nested_try", 
-                 "n_bare_except", "n_bare_raise_finally", "str_code_without_try_except"],
+                 "n_bare_except", "n_bare_raise_finally", "str_captures_except", "str_code_without_try_except"],
         "ts": ["file", "function", "func_body", "n_try_catch", "n_finally", "str_catch_identifiers", "str_catch_block",
                "n_generic_catch", "n_useless_catch", "n_count_empty_catch", "n_count_catch_reassigning_identifier", "n_wrapped_catch", "str_throw_identifiers",
                "n_throw", "n_generic_throw", "n_non_generic_throw", "n_not_recommended_throw", "n_captures_try_catch_throw", "n_try_return",

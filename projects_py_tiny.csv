@@ -1,0 +1,10 @@
+,name,repo,source
+pallets,flask,https://github.com/pallets/flask,github
+ytdl-org,youtube-dl,https://github.com/ytdl-org/youtube-dl,github
+tensorflow,models,https://github.com/tensorflow/models,github
+keras-team,keras,https://github.com/keras-team/keras,github
+ansible,ansible,https://github.com/ansible/ansible,github
+scikit-learn,scikit-learn,https://github.com/scikit-learn/scikit-learn,github
+tiangolo,fastapi,https://github.com/tiangolo/fastapi,github
+3b1b,manim,https://github.com/3b1b/manim,github
+psf,requests,https://github.com/psf/requests,github

@@ -86,9 +86,10 @@ def prompt_task2_default(function):
     prompt = (
         "You will be provided with a Python code snippet that currently lacks exception handling.\n"
         "Your task is to add appropriate try-except blocks to the code where necessary.\n"
-        "Return the modified code, keeping the format consistent. \n\n"
-        f"<code>\n{function}\n</code>\n"
+        "Return the modified code, keeping the format consistent. \n"
         "The output must include: the code inside the try-except block and the except block that handles the exception.\n"
+        "The code must be enclosed within <code> tags.\n\n"
+        f"<code>\n{function}\n</code>\n"
     )
     return prompt
 
@@ -96,10 +97,12 @@ def prompt_task2_default(function):
 def prompt_task2_1_shot(function):
     example_code = "result = 1 / n"
     example_output = (
+        "<code>"
         "try:\n"
         "    result = 1 / n\n"
         "except ZeroDivisionError:\n"
-        "    print('Division by zero is not allowed')"
+        "    print('Division by zero is not allowed')\n"
+        "</code>"
     )
     
     prompt = (
@@ -109,6 +112,7 @@ def prompt_task2_1_shot(function):
         "Now, for the following code, add the required try-except block:\n"
         f"<code>\n{function}\n</code>\n"
         "The output must include: the code inside the try-except block and the except block that handles the exception.\n"
+        "The code must be enclosed within <code> tags.\n"
     )
     return prompt
 
@@ -116,16 +120,31 @@ def prompt_task2_1_shot(function):
 def prompt_task2_few_shot(function, num_shots=2):
     examples = [
         (
-            "open('file.txt', 'r')",
-            "try:\n    open('file.txt', 'r')\nexcept FileNotFoundError:\n    print('File not found')"
+            "<code>"
+            "open('file.txt', 'r')\n",
+            "try:\n"
+            "    open('file.txt', 'r')\n"
+            "except FileNotFoundError:\n"
+            "    print('File not found')\n"
+            "</code>"
         ),
         (
-            "value = int('not_a_number')",
-            "try:\n    value = int('not_a_number')\nexcept ValueError:\n    print('Invalid integer')"
+            "<code>"
+            "value = int('not_a_number')\n",
+            "try:\n"
+            "    value = int('not_a_number')\n"
+            "except ValueError:\n"
+            "    print('Invalid integer')\n"
+            "</code>"
         ),
         (
-            "result = 1 / 0",
-            "try:\n    result = 1 / 0\nexcept ZeroDivisionError:\n    print('Division by zero is not allowed')"
+            "<code>"
+            "result = 1 / 0\n",
+            "try:\n"
+            "    result = 1 / 0\n"
+            "except ZeroDivisionError:\n"
+            "    print('Division by zero is not allowed')\n"
+            "</code>"
         ),
     ]
 
@@ -137,6 +156,7 @@ def prompt_task2_few_shot(function, num_shots=2):
         "Now, add the required try-except block to the following code:\n"
         f"<code>\n{function}\n</code>\n"
         "The output must include: the code inside the try-except block and the except block that handles the exception.\n"
+        "The code must be enclosed within <code> tags.\n"
     )
     return prompt
 
@@ -150,6 +170,7 @@ def prompt_task2_cot(function):
         "3. Add a try-except block to handle the exceptions appropriately.\n"
         "4. Return the modified code with the correct exception handling.\n"
         "The output must include: the code inside the try-except block and the except block that handles the exception.\n"
+        "The code must be enclosed within <code> tags.\n"
     )
     return prompt
 
@@ -157,7 +178,8 @@ def prompt_task3_default(function):
     prompt = (
         "You will be provided with a Python code snippet that may require exception handling.\n"
         "Your task is to identify which specific exception(s) should be caught for this code.\n"
-        "Return only the name of the exception(s) that should be handled, separated by commas if multiple.\n\n"
+        "Return only the name of the exception(s) that should be handled, separated by commas if multiple.\n"
+        "Do not provide any explanations or additional context.\n\n"
         f"<code>\n{function}\n</code>\n"
     )
     return prompt
@@ -173,6 +195,7 @@ def prompt_task3_1_shot(function):
         "Now, for the following code, identify the exception(s) that should be handled:\n"
         f"<code>\n{function}\n</code>\n"
         "Return only the name of the exception(s), separated by commas if multiple.\n"
+        "Do not provide any explanations or additional context.\n"
     )
     return prompt
 
@@ -200,6 +223,7 @@ def prompt_task3_few_shot(function, num_shots=2):
         "Now, identify the exception(s) that should be handled for the following code:\n"
         f"<code>\n{function}\n</code>\n"
         "Return only the name of the exception(s), separated by commas if multiple.\n"
+        "Do not provide any explanations or additional context.\n"
     )
     return prompt
 
@@ -211,6 +235,7 @@ def prompt_task3_cot(function):
         "2. For each operation, consider what type of exception it might raise.\n"
         "3. Determine the most specific exception(s) that should be caught.\n"
         "4. Return only the name(s) of the exception(s) that should be handled, separated by commas if multiple.\n"
+        "Do not provide any explanations or additional context.\n"
     )
     return prompt
 
@@ -218,14 +243,14 @@ def prompt_task4_default(function):
     prompt = (
         "You will be provided with a Python code snippet that may require exception handling.\n"
         "Your task is to write only the exception handling block (the 'except' clause) that would be appropriate for this code.\n"
-        "Return only the exception handling code block, without the 'try' part.\n\n"
+        "Return only the exception handling code block, without the 'try' part, and enclose it within <code> tags.\n\n"
         f"<code>\n{function}\n</code>\n"
     )
     return prompt
 
 def prompt_task4_1_shot(function):
     example_code = "result = 1 / n"
-    example_output = "except ZeroDivisionError:\n    print('Division by zero is not allowed')"
+    example_output = "<code>\nexcept ZeroDivisionError:\n    print('Division by zero is not allowed')\n</code>"
     
     prompt = (
         "Here is an example of a Python code snippet and its corresponding exception handling block:\n"
@@ -233,7 +258,7 @@ def prompt_task4_1_shot(function):
         f"Exception handling block:\n{example_output}\n\n"
         "Now, for the following code, write only the appropriate exception handling block:\n"
         f"<code>\n{function}\n</code>\n"
-        "Return only the exception handling code block, without the 'try' part.\n"
+        "Return only the exception handling code block, without the 'try' part, and enclose it within <code> tags.\n"
     )
     return prompt
 
@@ -241,15 +266,15 @@ def prompt_task4_few_shot(function, num_shots=2):
     examples = [
         (
             "open('file.txt', 'r')",
-            "except FileNotFoundError:\n    print('File not found')"
+            "<code>\nexcept FileNotFoundError:\n    print('File not found')\n</code>"
         ),
         (
             "value = int('not_a_number')",
-            "except ValueError:\n    print('Invalid integer')"
+            "<code>\nexcept ValueError:\n    print('Invalid integer')\n</code>"
         ),
         (
             "import os\nos.remove('/path/to/file')",
-            "except OSError as e:\n    if e.errno == errno.ENOENT:\n        print('File not found')\n    elif e.errno == errno.EACCES:\n        print('Permission denied')\n    else:\n        print(f'Error: {e}')"
+            "<code>\nexcept OSError as e:\n    if e.errno == errno.ENOENT:\n        print('File not found')\n    elif e.errno == errno.EACCES:\n        print('Permission denied')\n    else:\n        print(f'Error: {e}')\n</code>"
         ),
     ]
 
@@ -260,7 +285,7 @@ def prompt_task4_few_shot(function, num_shots=2):
     prompt += (
         "Now, write only the appropriate exception handling block for the following code:\n"
         f"<code>\n{function}\n</code>\n"
-        "Return only the exception handling code block, without the 'try' part.\n"
+        "Return only the exception handling code block, without the 'try' part, and enclose it within <code> tags.\n"
     )
     return prompt
 
@@ -272,20 +297,20 @@ def prompt_task4_cot(function):
         "2. Determine the specific exceptions that these operations might raise.\n"
         "3. Consider any special conditions or error messages that should be handled.\n"
         "4. Write only the exception handling block (the 'except' clause) that would be appropriate for this code.\n"
-        "Return only the exception handling code block, without the 'try' part.\n"
+        "Return only the exception handling code block, without the 'try' part, and enclose it within <code> tags.\n"
     )
     return prompt
 
- """
- TODO: task 5 to evaluate if the LLM is able to create a test to exception handling code to test the exceptional behavior.
- However, we need know how to evaluate if the exception test created by the developer is equivalent to the test created by the LLM.
- """
+"""
+TODO: Task 5 to evaluate if the LLM is able to create a test to exception handling code to test the exceptional behavior.
+However, we need know how to evaluate if the exception test created by the developer is equivalent to the test created by the LLM.
+"""
 
 def collect_df(task):
     for project in projects:
         #filenames = glob.glob(f"../output/parser/*.csv")
         #df = pd.read_csv(f"../output/parser/{project}_stats.csv")
-        df = pd.read_csv("/home/r4ph/desenv/exception-miner-multi/output/parser/py/flask_stats.csv")
+        df = pd.read_csv("/home/r4ph/desenv/exception-miner-multi-tales/output/parser/py/flask_stats.csv")
         df['project'] = project
         dfs.append(df)
 
@@ -303,7 +328,7 @@ def collect_df(task):
     # To test:
     # return pd.concat([pos_samples.sample(n=1), neg_samples.sample(n=1)], ignore_index=True)
 
-def call_llama(prompt, model_name="codellama"):
+def call_llama(prompt, model_name):
     headers = {
         "Content-Type": "application/json"
     }
@@ -346,10 +371,19 @@ TASKS = {
 }
 
 start = time.time()
-model_name = "codellama"
+model = "incept5/llama3.1-claude"
+model_name = model.split("/")[-1] if "/" in model else model
+project="flask"
 df_result = pd.DataFrame()
 count = 0
 
+# Define a function to save the results to CSV
+def save_results_to_csv(df, task, prompt_type, project, model_name):
+    output_file = f"{os.getcwd()}/llm/output/{project}_{model_name}_{task}_{prompt_type}_results.csv"
+    df.to_csv(output_file, index=False)
+    logger.info(f"Results saved to {output_file}")
+
+# Main processing loop
 for task, prompt_functions in TASKS.items():
     print(f"Processing {task}...")
 
@@ -365,8 +399,7 @@ for task, prompt_functions in TASKS.items():
                 prompt = prompt_func(row['func_body'])
 
             logger.info(f'PROMPT: {prompt}')
-            response = call_llama(prompt=prompt)
-            #logger.info(response.json())
+            response = call_llama(prompt=prompt, model_name=model)
             logger.info(f'Generated {len(response.json())} tokens in {(time.time() - start):.2f} seconds')
             logger.info('Response....' + response.json()['response'])
             output.append(response.json()['response'])
@@ -376,7 +409,10 @@ for task, prompt_functions in TASKS.items():
         df_style['prompt_type'] = prompt_type
         df_style['llm_response'] = output
 
+        # Save results to CSV after processing each prompt type
         df_result = pd.concat([df_result, df_style], ignore_index=True)
+        save_results_to_csv(df_style, task, prompt_type, project, model_name)
 
-
-df_result.to_csv(f"{os.getcwd()}/llm/new_flask_llm_results.csv", index=False)
+# Optionally, you can also combine all results into a final CSV if needed
+final_output_file = f"{os.getcwd()}/llm/output/{project}_{model_name}_results.csv"
+df_result.to_csv(final_output_file, index=False)

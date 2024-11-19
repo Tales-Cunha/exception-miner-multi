@@ -104,6 +104,8 @@ class FileStats:
 
         captures_except_block = list(map(lambda x: x[0].text.decode('utf-8'), get_except_block(func_def)))
 
+        captures_except_clause = list(map(lambda x: x[0].text.decode('utf-8'), get_except_clause(func_def)))
+
         captures_code_without_try_except = get_code_without_try_except(func_def, tree)
 
         captures_try_stmt_vec = get_try_statements_vector(func_def)
@@ -139,7 +141,8 @@ class FileStats:
             "n_nested_try": n_nested_try,
             "n_bare_except": n_bare_except,
             "n_bare_raise_finally" : n_bare_raise_finally,
-            "str_code_without_try_except": captures_code_without_try_except
+            "str_code_without_try_except": captures_code_without_try_except,
+            "str_captures_except": captures_except_clause
         }
 
 
