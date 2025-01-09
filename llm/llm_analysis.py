@@ -1,14 +1,15 @@
 import pandas as pd
-import numpy as np
+#import numpy as np
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix
-import seaborn as sns
-import matplotlib.pyplot as plt
+#import seaborn as sns
+#import matplotlib.pyplot as plt
 import ast
 import re
 from difflib import SequenceMatcher
 from sklearn.preprocessing import MultiLabelBinarizer
 from nltk.translate.bleu_score import sentence_bleu
-import os  # Import os to interact with the file system
+import os  
+import csv 
 
 # Load the dataset
 output_dir = "/home/r4ph/desenv/exception-miner-multi-tales/llm/output"  # Specify the output directory
@@ -85,10 +86,9 @@ def extract_except_block(response):
 def code_similarity(code1, code2):
     return SequenceMatcher(None, code1, code2).ratio()
 
-# Define the tasks
 tasks = ['task1', 'task2', 'task3', 'task4']
+metrics_data = []
 
-# Evaluate metrics for each task
 for task in tasks:
     print(f"\nEvaluating {task}:")
     
@@ -117,6 +117,11 @@ for task in tasks:
             cm = confusion_matrix(y_true, y_pred)
             print("\nConfusion Matrix:")
             print(cm)
+
+            metrics_data.append({'task': task, 'style-prompt': prompt_type, 'model': 'llama3.1-claude', 'metric': 'Accuracy', 'value': accuracy})
+            metrics_data.append({'task': task, 'style-prompt': prompt_type, 'model': 'llama3.1-claude', 'metric': 'Precision', 'value': precision})
+            metrics_data.append({'task': task, 'style-prompt': prompt_type, 'model': 'llama3.1-claude', 'metric': 'Recall', 'value': recall})
+            metrics_data.append({'task': task, 'style-prompt': prompt_type, 'model': 'llama3.1-claude', 'metric': 'F-measure', 'value': f_measure})
 
         elif task == 'task2':  # task2
             y_true = []
@@ -150,6 +155,11 @@ for task in tasks:
             cm = confusion_matrix(y_true, y_pred)
             print("\nConfusion Matrix:")
             print(cm)
+
+            metrics_data.append({'task': task, 'style-prompt': prompt_type, 'model': 'llama3.1-claude', 'metric': 'Accuracy', 'value': accuracy})
+            metrics_data.append({'task': task, 'style-prompt': prompt_type, 'model': 'llama3.1-claude', 'metric': 'Precision', 'value': precision})
+            metrics_data.append({'task': task, 'style-prompt': prompt_type, 'model': 'llama3.1-claude', 'metric': 'Recall', 'value': recall})
+            metrics_data.append({'task': task, 'style-prompt': prompt_type, 'model': 'llama3.1-claude', 'metric': 'F-measure', 'value': f_measure})
 
         
         elif task == 'task3':
@@ -192,6 +202,8 @@ for task in tasks:
             # print(f"Recall: {recall:.2f}")
             # print(f"F-measure: {f_measure:.2f}")
         
+            metrics_data.append({'task': task, 'style-prompt': prompt_type, 'model': 'llama3.1-claude', 'metric': 'Mean Accuracy@k', 'value': mean_accuracy_at_k})
+
         elif task == 'task4':
             y_true = results['str_captures_except']  # Assuming this is the correct column
             y_pred = results['llm_response'].apply(extract_except_block)
@@ -218,4 +230,16 @@ for task in tasks:
             print(f"\nMetrics for {prompt_type} prompt in task 4:")
             print(f"Average BLEU Score: {average_bleu:.2f}")
             print(f"Exact Match Rate: {exact_match_rate:.2f}")
+
+            metrics_data.append({'task': task, 'style-prompt': prompt_type, 'model': 'llama3.1-claude', 'metric': 'Average BLEU Score', 'value': average_bleu})
+            metrics_data.append({'task': task, 'style-prompt': prompt_type, 'model': 'llama3.1-claude', 'metric': 'Exact Match Rate', 'value': exact_match_rate})
+
+output_csv_path = f"{os.getcwd()}/llm/output/metrics.csv"
+with open(output_csv_path, mode='w', newline='') as csv_file:
+    fieldnames = ['task', 'style-prompt', 'model', 'metric', 'value']
+    writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
+
+    writer.writeheader()
+    for metric in metrics_data:
+        writer.writerow(metric)  
 

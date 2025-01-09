@@ -1,0 +1,56 @@
+task,style-prompt,model,metric,value
+task1,style-few-shot,llama3.1-claude,Accuracy,0.5666666666666667
+task1,style-few-shot,llama3.1-claude,Precision,0.5833333333333334
+task1,style-few-shot,llama3.1-claude,Recall,0.4666666666666667
+task1,style-few-shot,llama3.1-claude,F-measure,0.5185185185185185
+task1,nan,llama3.1-claude,Accuracy,nan
+task1,nan,llama3.1-claude,Precision,0.0
+task1,nan,llama3.1-claude,Recall,0.0
+task1,nan,llama3.1-claude,F-measure,0.0
+task1,style-cot,llama3.1-claude,Accuracy,0.43333333333333335
+task1,style-cot,llama3.1-claude,Precision,0.4482758620689655
+task1,style-cot,llama3.1-claude,Recall,0.5777777777777777
+task1,style-cot,llama3.1-claude,F-measure,0.5048543689320388
+task1,style-default,llama3.1-claude,Accuracy,0.6333333333333333
+task1,style-default,llama3.1-claude,Precision,0.6304347826086957
+task1,style-default,llama3.1-claude,Recall,0.6444444444444445
+task1,style-default,llama3.1-claude,F-measure,0.6373626373626373
+task1,style-1-shot,llama3.1-claude,Accuracy,0.6222222222222222
+task1,style-1-shot,llama3.1-claude,Precision,0.6896551724137931
+task1,style-1-shot,llama3.1-claude,Recall,0.4444444444444444
+task1,style-1-shot,llama3.1-claude,F-measure,0.5405405405405406
+task2,style-default,llama3.1-claude,Accuracy,0.8017241379310345
+task2,style-default,llama3.1-claude,Precision,0.08695652173913043
+task2,style-default,llama3.1-claude,Recall,0.07407407407407407
+task2,style-default,llama3.1-claude,F-measure,0.08
+task2,style-few-shot,llama3.1-claude,Accuracy,0.8029197080291971
+task2,style-few-shot,llama3.1-claude,Precision,0.2127659574468085
+task2,style-few-shot,llama3.1-claude,Recall,0.24691358024691357
+task2,style-few-shot,llama3.1-claude,F-measure,0.22857142857142856
+task2,nan,llama3.1-claude,Accuracy,nan
+task2,nan,llama3.1-claude,Precision,0.0
+task2,nan,llama3.1-claude,Recall,0.0
+task2,nan,llama3.1-claude,F-measure,0.0
+task2,style-1-shot,llama3.1-claude,Accuracy,0.7352941176470589
+task2,style-1-shot,llama3.1-claude,Precision,0.13013698630136986
+task2,style-1-shot,llama3.1-claude,Recall,0.2345679012345679
+task2,style-1-shot,llama3.1-claude,F-measure,0.16740088105726872
+task2,style-cot,llama3.1-claude,Accuracy,0.7899045020463847
+task2,style-cot,llama3.1-claude,Precision,0.07058823529411765
+task2,style-cot,llama3.1-claude,Recall,0.07407407407407407
+task2,style-cot,llama3.1-claude,F-measure,0.07228915662650602
+task3,style-few-shot,llama3.1-claude,Mean Accuracy@k,0.35555555555555557
+task3,nan,llama3.1-claude,Mean Accuracy@k,0
+task3,style-1-shot,llama3.1-claude,Mean Accuracy@k,0.4
+task3,style-cot,llama3.1-claude,Mean Accuracy@k,0.35555555555555557
+task3,style-default,llama3.1-claude,Mean Accuracy@k,0.5111111111111111
+task4,style-default,llama3.1-claude,Average BLEU Score,2.909807719779368e-156
+task4,style-default,llama3.1-claude,Exact Match Rate,0.0
+task4,nan,llama3.1-claude,Average BLEU Score,0
+task4,nan,llama3.1-claude,Exact Match Rate,0
+task4,style-1-shot,llama3.1-claude,Average BLEU Score,3.700127595816119e-80
+task4,style-1-shot,llama3.1-claude,Exact Match Rate,0.0
+task4,style-few-shot,llama3.1-claude,Average BLEU Score,3.2172270652926415e-80
+task4,style-few-shot,llama3.1-claude,Exact Match Rate,0.0
+task4,style-cot,llama3.1-claude,Average BLEU Score,4.622283199596426e-156
+task4,style-cot,llama3.1-claude,Exact Match Rate,0.0
