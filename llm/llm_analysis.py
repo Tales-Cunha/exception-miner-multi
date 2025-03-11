@@ -12,7 +12,7 @@ import os
 import csv 
 
 # Load the dataset
-output_dir = "/home/r4ph/desenv/exception-miner-multi-tales/llm/output"  # Specify the output directory
+output_dir = "/home/mileto/Projects/exception-miner-multi/llm/output"  # Specify the output directory
 all_files = [f for f in os.listdir(output_dir) if f.endswith('.csv')]  # List all CSV files in the directory
 
 # Read and concatenate all CSV files into a single DataFrame
@@ -165,74 +165,109 @@ for task in tasks:
         elif task == 'task3':
             y_true = []
             y_pred = []
-            accuracies = []  # List to store individual accuracies
+            accuracies = []  # List to store individual Accuracy@k values
+            k = 3  # Set the value of k
             for _, row in results.iterrows():
-                true_exceptions = (row['str_except_identifiers'])  # Parse true exceptions
+                true_exceptions = row['str_except_identifiers']  # Parse true exceptions
                 predicted_exceptions = parse_task3_response(row['llm_response'])  # Parse predicted exceptions
-                
+
+                # Handle potential NaN values and ensure the values are lists
+                if pd.isnull(true_exceptions):
+                    true_exceptions = []
+                elif not isinstance(true_exceptions, list):
+                    true_exceptions = [true_exceptions]
+
+                if predicted_exceptions is None or (isinstance(predicted_exceptions, float) and pd.isnull(predicted_exceptions)):
+                    predicted_exceptions = []
+                elif not isinstance(predicted_exceptions, list):
+                    predicted_exceptions = [predicted_exceptions]
+
                 # Extend the lists for multi-label classification
                 y_true.append(true_exceptions)
                 y_pred.append(predicted_exceptions)
 
                 # Calculate Accuracy@k for the current response
-                k = 3  # Set the value of k
                 accuracy_at_k = 1 if any(item in true_exceptions for item in predicted_exceptions[:k]) else 0
                 accuracies.append(accuracy_at_k)  # Store the individual accuracy
 
-            # Calculate the mean accuracy across all responses
+            # Calculate the mean Accuracy@k
             mean_accuracy_at_k = sum(accuracies) / len(accuracies) if accuracies else 0
-            
             print(f"\nMean Accuracy@{k} for {prompt_type} prompt in task 3: {mean_accuracy_at_k:.2f}")
-            
-            # Now Extend the vectors to calculate the accuracy outside of the loop:
-            # Flatten the lists for multi-label comparison
+
+            # Multi-label classification metrics
             mlb = MultiLabelBinarizer()
             y_true_bin = mlb.fit_transform(y_true)
             y_pred_bin = mlb.transform(y_pred)
 
-            # Calculate metrics
-            # accuracy = accuracy_score(y_true_bin, y_pred_bin)
-            # precision = precision_score(y_true_bin, y_pred_bin, average='micro', zero_division=0)
-            # recall = recall_score(y_true_bin, y_pred_bin, average='micro', zero_division=0)
-            # f_measure = f1_score(y_true_bin, y_pred_bin, average='micro', zero_division=0)
-            
-            # print(f"\nMetrics for {prompt_type} prompt in task 3:")
-            # print(f"Accuracy: {mean_accuracy_at_k:.2f}")
-            # print(f"Precision: {precision:.2f}")
-            # print(f"Recall: {recall:.2f}")
-            # print(f"F-measure: {f_measure:.2f}")
-        
+            # Check if there are any classes; if not, set metrics to 0 to avoid errors
+            if len(mlb.classes_) == 0:
+                macro_f1 = 0
+                weighted_f1 = 0
+                weighted_accuracy = 0
+            else:
+                macro_f1 = f1_score(y_true_bin, y_pred_bin, average='macro', zero_division=0)
+                weighted_f1 = f1_score(y_true_bin, y_pred_bin, average='weighted', zero_division=0)
+                weighted_accuracy = accuracy_score(y_true_bin, y_pred_bin)
+
+            # Print detailed metrics
+            print(f"\nDetailed Metrics for {prompt_type} prompt in task 3:")
+            print(f"Macro F1-score:   {macro_f1:.2f}")
+            print(f"Weighted F1-score:{weighted_f1:.2f}")
+            print(f"Weighted Accuracy:{weighted_accuracy:.2f}")
+
+            # Save metrics
             metrics_data.append({'task': task, 'style-prompt': prompt_type, 'model': 'llama3.1-claude', 'metric': 'Mean Accuracy@k', 'value': mean_accuracy_at_k})
+            metrics_data.append({'task': task, 'style-prompt': prompt_type, 'model': 'llama3.1-claude', 'metric': 'Macro F1-score', 'value': macro_f1})
+            metrics_data.append({'task': task, 'style-prompt': prompt_type, 'model': 'llama3.1-claude', 'metric': 'Weighted F1-score', 'value': weighted_f1})
+            metrics_data.append({'task': task, 'style-prompt': prompt_type, 'model': 'llama3.1-claude', 'metric': 'Weighted Accuracy', 'value': weighted_accuracy})
 
         elif task == 'task4':
             y_true = results['str_captures_except']  # Assuming this is the correct column
             y_pred = results['llm_response'].apply(extract_except_block)
             
-            # Calculate BLEU scores and exact matches
+            # Calculate BLEU scores, Exact Matches, and Jaccard Similarity
             bleu_scores = []
             exact_matches = []
+            jaccard_scores = []
+
+            from nltk.translate.bleu_score import sentence_bleu, SmoothingFunction
+            smooth_fn = SmoothingFunction().method1  # Smoothing function to avoid zero scores
 
             for true, pred in zip(y_true, y_pred):
-                # Calculate BLEU score
-                true_tokens = true.split()  # Tokenize the true string
-                pred_tokens = pred.split()  # Tokenize the predicted string
-                bleu_score = sentence_bleu([true_tokens], pred_tokens)  # Calculate BLEU score
+                # Tokenize strings
+                true_tokens = true.split()
+                pred_tokens = pred.split()
+                
+                # Calculate BLEU score with smoothing
+                bleu_score = sentence_bleu([true_tokens], pred_tokens, smoothing_function=smooth_fn)
                 bleu_scores.append(bleu_score)
 
-                # Calculate exact match
-                exact_match = 1 if true == pred else 0  # 1 if they match, 0 otherwise
+                # Calculate Exact Match
+                exact_match = 1 if true == pred else 0
                 exact_matches.append(exact_match)
+                
+                # Calculate Jaccard Similarity
+                set_true = set(true_tokens)
+                set_pred = set(pred_tokens)
+                union = set_true.union(set_pred)
+                intersection = set_true.intersection(set_pred)
+                jaccard = len(intersection) / len(union) if union else 0
+                jaccard_scores.append(jaccard)
 
-            # Calculate average BLEU score and exact match rate
+            # Calculate average metrics
             average_bleu = sum(bleu_scores) / len(bleu_scores) if bleu_scores else 0
             exact_match_rate = sum(exact_matches) / len(exact_matches) if exact_matches else 0
-            
-            print(f"\nMetrics for {prompt_type} prompt in task 4:")
-            print(f"Average BLEU Score: {average_bleu:.2f}")
-            print(f"Exact Match Rate: {exact_match_rate:.2f}")
+            average_jaccard = sum(jaccard_scores) / len(jaccard_scores) if jaccard_scores else 0
 
+            print(f"\nMetrics for {prompt_type} prompt in task 4:")
+            print(f"Average BLEU Score:       {average_bleu:.2f}")
+            print(f"Exact Match Rate:         {exact_match_rate:.2f}")
+            print(f"Average Jaccard Similarity: {average_jaccard:.2f}")
+
+            # Save metrics
             metrics_data.append({'task': task, 'style-prompt': prompt_type, 'model': 'llama3.1-claude', 'metric': 'Average BLEU Score', 'value': average_bleu})
             metrics_data.append({'task': task, 'style-prompt': prompt_type, 'model': 'llama3.1-claude', 'metric': 'Exact Match Rate', 'value': exact_match_rate})
+            metrics_data.append({'task': task, 'style-prompt': prompt_type, 'model': 'llama3.1-claude', 'metric': 'Average Jaccard Similarity', 'value': average_jaccard})
 
 output_csv_path = f"{os.getcwd()}/llm/output/metrics.csv"
 with open(output_csv_path, mode='w', newline='') as csv_file:
