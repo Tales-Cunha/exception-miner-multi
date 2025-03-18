@@ -285,6 +285,7 @@ def prompt_task4_few_shot(function, num_shots=2):
     prompt += (
         "Now, write only the appropriate exception handling block for the following code:\n"
         f"<code>\n{function}\n</code>\n"
+        "Be specific about which exceptions to catch based on the operations in the code.\n"
         "Return only the exception handling code block, without the 'try' part, and enclose it within <code> tags.\n"
     )
     return prompt

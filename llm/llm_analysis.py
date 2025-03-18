@@ -82,6 +82,43 @@ def extract_except_block(response):
     except:
         return ""
 
+def evaluate_exception_handling(true_code, pred_code):
+    """Evaluate exception handling code more accurately"""
+    # Clean and normalize the code snippets
+    def normalize_code(code):
+        # Remove whitespace variations and comments
+        code = re.sub(r'#.*$', '', code, flags=re.MULTILINE)
+        code = re.sub(r'\s+', ' ', code).strip()
+        return code
+    
+    # Extract exception types
+    def extract_exception_types(code):
+        exception_pattern = r'except\s+(\w+(?:\.\w+)*)(?:\s+as\s+\w+)?:'
+        return set(re.findall(exception_pattern, code))
+    
+    # Normalize both code snippets
+    norm_true = normalize_code(true_code)
+    norm_pred = normalize_code(pred_code)
+    
+    # Calculate basic similarity
+    similarity = SequenceMatcher(None, norm_true, norm_pred).ratio()
+    
+    # Compare exception types
+    true_exceptions = extract_exception_types(true_code)
+    pred_exceptions = extract_exception_types(pred_code)
+    
+    # Calculate exception type precision and recall
+    exception_precision = len(true_exceptions.intersection(pred_exceptions)) / len(pred_exceptions) if pred_exceptions else 0
+    exception_recall = len(true_exceptions.intersection(pred_exceptions)) / len(true_exceptions) if true_exceptions else 0
+    exception_f1 = 2 * (exception_precision * exception_recall) / (exception_precision + exception_recall) if (exception_precision + exception_recall) > 0 else 0
+    
+    return {
+        "text_similarity": similarity,
+        "exception_precision": exception_precision,
+        "exception_recall": exception_recall,
+        "exception_f1": exception_f1
+    }
+    
 # Function to calculate similarity between two code blocks
 def code_similarity(code1, code2):
     return SequenceMatcher(None, code1, code2).ratio()
@@ -222,52 +259,35 @@ for task in tasks:
             metrics_data.append({'task': task, 'style-prompt': prompt_type, 'model': 'llama3.1-claude', 'metric': 'Weighted Accuracy', 'value': weighted_accuracy})
 
         elif task == 'task4':
-            y_true = results['str_captures_except']  # Assuming this is the correct column
+            y_true = results['str_captures_except']
             y_pred = results['llm_response'].apply(extract_except_block)
             
-            # Calculate BLEU scores, Exact Matches, and Jaccard Similarity
-            bleu_scores = []
-            exact_matches = []
-            jaccard_scores = []
-
-            from nltk.translate.bleu_score import sentence_bleu, SmoothingFunction
-            smooth_fn = SmoothingFunction().method1  # Smoothing function to avoid zero scores
-
+            # Advanced metrics
+            metrics = []
             for true, pred in zip(y_true, y_pred):
-                # Tokenize strings
-                true_tokens = true.split()
-                pred_tokens = pred.split()
-                
-                # Calculate BLEU score with smoothing
-                bleu_score = sentence_bleu([true_tokens], pred_tokens, smoothing_function=smooth_fn)
-                bleu_scores.append(bleu_score)
-
-                # Calculate Exact Match
-                exact_match = 1 if true == pred else 0
-                exact_matches.append(exact_match)
-                
-                # Calculate Jaccard Similarity
-                set_true = set(true_tokens)
-                set_pred = set(pred_tokens)
-                union = set_true.union(set_pred)
-                intersection = set_true.intersection(set_pred)
-                jaccard = len(intersection) / len(union) if union else 0
-                jaccard_scores.append(jaccard)
-
+                if true and pred:  # Only evaluate if both exist
+                    evaluation = evaluate_exception_handling(true, pred)
+                    metrics.append(evaluation)
+            
             # Calculate average metrics
-            average_bleu = sum(bleu_scores) / len(bleu_scores) if bleu_scores else 0
-            exact_match_rate = sum(exact_matches) / len(exact_matches) if exact_matches else 0
-            average_jaccard = sum(jaccard_scores) / len(jaccard_scores) if jaccard_scores else 0
-
-            print(f"\nMetrics for {prompt_type} prompt in task 4:")
-            print(f"Average BLEU Score:       {average_bleu:.2f}")
-            print(f"Exact Match Rate:         {exact_match_rate:.2f}")
-            print(f"Average Jaccard Similarity: {average_jaccard:.2f}")
-
-            # Save metrics
-            metrics_data.append({'task': task, 'style-prompt': prompt_type, 'model': 'llama3.1-claude', 'metric': 'Average BLEU Score', 'value': average_bleu})
-            metrics_data.append({'task': task, 'style-prompt': prompt_type, 'model': 'llama3.1-claude', 'metric': 'Exact Match Rate', 'value': exact_match_rate})
-            metrics_data.append({'task': task, 'style-prompt': prompt_type, 'model': 'llama3.1-claude', 'metric': 'Average Jaccard Similarity', 'value': average_jaccard})
+            if metrics:
+                avg_text_similarity = sum(m["text_similarity"] for m in metrics) / len(metrics)
+                avg_exception_precision = sum(m["exception_precision"] for m in metrics) / len(metrics)
+                avg_exception_recall = sum(m["exception_recall"] for m in metrics) / len(metrics)
+                avg_exception_f1 = sum(m["exception_f1"] for m in metrics) / len(metrics)
+            else:
+                avg_text_similarity = avg_exception_precision = avg_exception_recall = avg_exception_f1 = 0
+            
+            print(f"\nAdvanced Metrics for {prompt_type} prompt in task 4:")
+            print(f"Average Text Similarity:       {avg_text_similarity:.2f}")
+            print(f"Exception Type Precision:      {avg_exception_precision:.2f}")
+            print(f"Exception Type Recall:         {avg_exception_recall:.2f}")
+            print(f"Exception Type F1:             {avg_exception_f1:.2f}")
+            
+            metrics_data.append({'task': task, 'style-prompt': prompt_type, 'model': 'llama3.1-claude', 'metric': 'Text Similarity', 'value': avg_text_similarity})
+            metrics_data.append({'task': task, 'style-prompt': prompt_type, 'model': 'llama3.1-claude', 'metric': 'Exception Precision', 'value': avg_exception_precision})
+            metrics_data.append({'task': task, 'style-prompt': prompt_type, 'model': 'llama3.1-claude', 'metric': 'Exception Recall', 'value': avg_exception_recall})
+            metrics_data.append({'task': task, 'style-prompt': prompt_type, 'model': 'llama3.1-claude', 'metric': 'Exception F1', 'value': avg_exception_f1})
 
 output_csv_path = f"{os.getcwd()}/llm/output/metrics.csv"
 with open(output_csv_path, mode='w', newline='') as csv_file:
