@@ -11,7 +11,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Define the projects
-projects = ["flask"]
+projects = ["combined"]
 dfs = []
 
 # Define prompt functions for task1
@@ -308,17 +308,10 @@ However, we need know how to evaluate if the exception test created by the devel
 """
 
 def collect_df(task):
-    for project in projects:
-        #filenames = glob.glob(f"../output/parser/*.csv")
-        #df = pd.read_csv(f"../output/parser/{project}_stats.csv")
-        df = pd.read_csv("/home/r4ph/desenv/exception-miner-multi-tales/output/parser/py/flask_stats.csv")
-        df['project'] = project
-        dfs.append(df)
-
-    # for fun in df[df['n_try_except'] == 1].str_code_without_try_except.values:
-    #     functions.append(fun)
+    df = pd.read_csv("/home/talescunha/Jairo/exception-miner-multi/tmp/py_stats_combined.csv")
+    df['project'] = 'combined'
     
-    if task == 'task1':
+    if task == 'task1':#700
         pos_samples = df[df['n_try_except'] == 1]
         neg_samples = df[df['n_try_except'] == 0].sample(n=len(pos_samples), random_state=42)
     
@@ -374,7 +367,7 @@ TASKS = {
 start = time.time()
 model = "incept5/llama3.1-claude"
 model_name = model.split("/")[-1] if "/" in model else model
-project="flask"
+project="combined"
 df_result = pd.DataFrame()
 count = 0
 
