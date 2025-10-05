@@ -22,382 +22,325 @@ EXAMPLE_BACKEND_CALL = "def call(self, x):\n    return backend.nn.silu(x)"
 projects = ["combined"]
 dfs = []
 
-# Define prompt functions for task1
 def prompt_default(function, binary_answers=True):
-    premise = "You are an expert Python developer. You will be provided with a Python code snippet."
-    code_text = function
-    instructions = (
-        "Task: Analyze whether this code snippet requires exception handling to run safely in production.\n"
-        "Consider potential runtime errors like: division by zero, file not found, type conversion errors, "
-        "network failures, invalid input, missing keys/indices, etc.\n\n"
-        "Return exactly one word:\n"
-        "- `yes` if the code needs exception handling\n"
-        "- `no` if the code is safe without exception handling\n\n"
-        "Important: Output only `yes` or `no` in lowercase, with no punctuation, explanation, "
-        "or surrounding quotes."
-    )
-    final_text = [
-        premise,
+    return "\n".join([
+        "Does this Python snippet require exception handling?",
         "<code>",
-        code_text,
+        function,
         "</code>",
-        instructions
-    ]   
-    final_text = "\n".join(final_text)
-    return final_text
+        "Answer with exactly yes or no in lowercase. No explanation."
+    ])
+
 
 def prompt_1_shot(function):
-    # Real example from the dataset: can_convert_to_float function
-    example_code = EXAMPLE_FLOAT_CONVERSION
-    example_result = "yes"
-    
-    final_text = (
-        "Here is one example (input -> output):\n"
-        "<code>\n"
-        f"{example_code}\n"
-        "</code>\n"
-        f"Output: {example_result}\n\n"
-        "Analysis: The float() function can raise ValueError if the string cannot be converted to float.\n\n"
-        "Now analyze the following code:\n"
-        "<code>\n"
-        f"{function}\n"
-        "</code>\n"
-        "Return exactly one word: `yes` if the code needs exception handling, or `no` if it doesn't. "
-        "Output only `yes` or `no` in lowercase."
-    )
-    return final_text
+    example_code = EXAMPLE_DIVISION
+    example_answer = "yes"
+    return "\n".join([
+        "Example:",
+        "<code>",
+        example_code,
+        "</code>",
+        f"Answer: {example_answer}",
+        "",
+        "Does the next Python snippet require exception handling?",
+        "<code>",
+        function,
+        "</code>",
+        "Respond with exactly yes or no in lowercase. No explanation."
+    ])
 
-def prompt_few_shot(function, num_shots=4):
-    # Real examples from the dataset
+
+def prompt_few_shot(function, num_shots=2):
     examples = [
-        (
-            EXAMPLE_FLOAT_CONVERSION,
-            "yes"
-        ),
-        (
-            EXAMPLE_FILE_READ,
-            "yes"
-        ),
-        (
-            EXAMPLE_SIMPLE_FUNCTION,
-            "no"
-        ),
-        (
-            EXAMPLE_BACKEND_CALL,
-            "no"
-        )
+        (EXAMPLE_FILE_READ, "yes"),
+        (EXAMPLE_FLOAT_CONVERSION, "yes"),
+        (EXAMPLE_BACKEND_CALL, "no"),
     ]
+    parts = ["Review the examples and mirror the answer style."]
+    for code_text, example_answer in examples[:num_shots]:
+        parts.extend(["<code>", code_text, "</code>", f"Answer: {example_answer}", ""])
+    parts.extend([
+        "Does the next Python snippet require exception handling?",
+        "<code>",
+        function,
+        "</code>",
+        "Reply with exactly yes or no in lowercase. No explanation."
+    ])
+    return "\n".join(parts).strip()
 
-    prompt = "Here are examples of Python code snippets and whether they need exception handling:\n\n"
-    for i, (example_code, example_result) in enumerate(examples[:num_shots], 1):
-        prompt += f"Example {i}:\n<code>\n{example_code}\n</code>\nNeeds exception handling: {example_result}\n\n"
-    
-    prompt += (
-        "Now analyze the following code:\n"
-        f"<code>\n{function}\n</code>\n"
-        "Does this code need an exception handling mechanism? "
-        "Return only `yes` if it needs exception handling, or `no` if it doesn't."
-    )
-    return prompt
+
 
 def prompt_cot(function):
-    prompt = (
-        "Analyze the following Python code step-by-step to determine if it needs exception handling:\n"
-        f"<code>\n{function}\n</code>\n\n"
-        "Step 1: Identify potentially risky operations in the code:\n"
-        "- File I/O operations (open, read, write)\n"
-        "- Type conversions (int, float, str)\n"
-        "- Division operations (/, //, %)\n"
-        "- Network operations (requests, urllib)\n"
-        "- Dictionary/list access with keys/indices\n"
-        "- Import statements\n"
-        "- JSON parsing\n\n"
-        "Step 2: Assess if these operations could fail at runtime:\n"
-        "- Could the operation receive invalid input?\n"
-        "- Could external resources be unavailable?\n"
-        "- Could the operation encounter edge cases?\n\n"
-        "Step 3: Check if exception handling already exists:\n"
-        "- Are there try-except blocks protecting risky operations?\n\n"
-        "Step 4: Make your decision:\n"
-        "If risky operations exist without protection, return `yes`.\n"
-        "If the code is safe or already has exception handling, return `no`.\n\n"
-        "Final answer (only `yes` or `no`):"
-    )
-    return prompt
+    return "\n".join([
+        "Assess whether the Python snippet needs exception handling.",
+        "<code>",
+        function,
+        "</code>",
+        "Think through possible failure points silently and respond with only yes or no in lowercase."
+    ])
+
 
 def prompt_task2_default(function):
-    prompt = (
-        "You are an expert Python developer. You will be provided with a Python code snippet that needs exception handling.\n"
-        "Your task is to add appropriate try-except blocks to make the code production-ready.\n\n"
-        "Guidelines:\n"
-        "- Identify operations that can raise exceptions\n"
-        "- Use specific exception types (not bare except)\n"
-        "- Provide meaningful error handling (logging, return values, or user feedback)\n"
-        "- Maintain the original code logic and structure\n\n"
-        "Return the complete modified code with exception handling enclosed within <code> tags.\n\n"
-        f"<code>\n{function}\n</code>\n"
-    )
-    return prompt
+    return "\n".join([
+        "Add the minimal required try/except block to this Python snippet.",
+        "Keep all unaffected lines exactly as they appear.",
+        "Return only the updated code wrapped in <code> tags.",
+        "<code>",
+        function,
+        "</code>",
+    ])
 
 
 def prompt_task2_1_shot(function):
-    # Real example from dataset: can_convert_to_float without exception handling  
-    example_code = EXAMPLE_FLOAT_CONVERSION
-    example_output = (
-        "<code>\n"
-        "def can_convert_to_float(string):\n"
-        "    try:\n"
-        "        float(string)\n"
-        "        return True\n"
-        "    except ValueError:\n"
-        "        return False\n"
-        "</code>"
-    )
-    
-    prompt = (
-        "Here is an example of adding exception handling to Python code:\n\n"
-        "Original code:\n"
-        f"<code>\n{example_code}\n</code>\n\n"
-        f"Modified code with exception handling:\n{example_output}\n\n"
-        "Now, add appropriate exception handling to the following code:\n"
-        f"<code>\n{function}\n</code>\n\n"
-        "Return the complete modified code with try-except blocks enclosed within <code> tags.\n"
-    )
-    return prompt
+    example_code = EXAMPLE_DIVISION
+    example_output = "\n".join([
+        "def divide_numbers(a, b):",
+        "    try:",
+        "        result = a / b",
+        "    except ZeroDivisionError:",
+        "        print('Division by zero is not allowed')",
+        "        return None",
+        "    return result",
+    ])
+    return "\n".join([
+        "Example transformation:",
+        "<code>",
+        example_code,
+        "</code>",
+        "Output:",
+        "<code>",
+        example_output,
+        "</code>",
+        "",
+        "Apply the same update to the snippet below.",
+        "Return only the modified code wrapped in <code> tags.",
+        "<code>",
+        function,
+        "</code>",
+    ])
 
 
-def prompt_task2_few_shot(function, num_shots=3):
+def prompt_task2_few_shot(function, num_shots=2):
     examples = [
         (
-            EXAMPLE_FLOAT_CONVERSION,
-            "<code>\n"
-            "def can_convert_to_float(string):\n"
-            "    try:\n"
-            "        float(string)\n"
-            "        return True\n"
-            "    except ValueError:\n"
-            "        return False\n"
-            "</code>"
-        ),
-        (
             EXAMPLE_FILE_READ,
-            "<code>\n"
-            "def read_file_binary(file_path: str) -> str:\n"
-            "    try:\n"
-            "        with open(file_path, 'rb') as file:\n"
-            "            return file.read().decode('utf-8')\n"
-            "    except OSError as e:\n"
-            "        print(f'File access error: {e}')\n"
-            "        return ''\n"
-            "    except UnicodeDecodeError:\n"
-            "        print('Error decoding file to UTF-8')\n"
-            "        return ''\n"
-            "</code>"
+            "\n".join([
+                "def read_file_binary(file_path: str) -> str:",
+                "    try:",
+                "        with open(file_path, 'rb') as file:",
+                "            return file.read().decode('utf-8')",
+                "    except FileNotFoundError:",
+                "        print('File not found')",
+                "        return ''",
+            ]),
         ),
-        (
-            EXAMPLE_DIVISION,
-            "<code>\n"
-            "def divide_numbers(a, b):\n"
-            "    try:\n"
-            "        result = a / b\n"
-            "        return result\n"
-            "    except ZeroDivisionError:\n"
-            "        print('Division by zero is not allowed')\n"
-            "        return None\n"
-            "    except TypeError:\n"
-            "        print('Invalid types for division')\n"
-            "        return None\n"
-            "</code>"
-        ),
-    ]
-
-    prompt = "Here are examples of adding exception handling to Python code:\n\n"
-    for i, (example_code, example_output) in enumerate(examples[:num_shots], 1):
-        prompt += f"Example {i}:\nOriginal code:\n<code>\n{example_code}\n</code>\n\nModified code:\n{example_output}\n\n"
-
-    prompt += (
-        "Now, add appropriate exception handling to the following code:\n"
-        f"<code>\n{function}\n</code>\n\n"
-        "Return the complete modified code with try-except blocks enclosed within <code> tags.\n"
-    )
-    return prompt
-
-
-def prompt_task2_cot(function):
-    prompt = (
-        "Add exception handling to the following Python code by thinking through it step-by-step:\n\n"
-        f"<code>\n{function}\n</code>\n\n"
-        "Step 1: Analyze the code and identify risky operations:\n"
-        "- File I/O: open(), read(), write() -> OSError, FileNotFoundError, PermissionError\n"
-        "- Type conversion: int(), float(), str() -> ValueError, TypeError\n"
-        "- Division: /, //, % -> ZeroDivisionError, TypeError\n"
-        "- Dictionary/List access: dict[key], list[index] -> KeyError, IndexError\n"
-        "- Network operations: requests, urllib -> ConnectionError, TimeoutError\n"
-        "- JSON operations: json.loads() -> JSONDecodeError\n\n"
-        "Step 2: Determine the appropriate exception types to catch for each operation.\n\n"
-        "Step 3: Design meaningful error handling:\n"
-        "- Log the error or provide user feedback\n"
-        "- Return a safe default value or None\n"
-        "- Re-raise if the error cannot be handled\n\n"
-        "Step 4: Write the complete code with try-except blocks:\n"
-        "- Wrap risky operations in try blocks\n"
-        "- Use specific exception types (avoid bare except)\n"
-        "- Maintain the original code structure and logic\n\n"
-        "Return the complete modified code enclosed within <code> tags:\n"
-    )
-    return prompt
-
-def prompt_task3_default(function):
-    prompt = (
-        "You are an expert Python developer. Analyze the following code snippet to identify which specific "
-        "exception(s) should be caught for safe execution.\n\n"
-        "Consider these common exception types:\n"
-        "- ValueError: Invalid value conversion or format\n"
-        "- TypeError: Wrong type for operation\n"
-        "- FileNotFoundError, OSError: File/IO operations\n"
-        "- ZeroDivisionError: Division by zero\n"
-        "- KeyError, IndexError: Dictionary/list access\n"
-        "- ImportError, ModuleNotFoundError: Import failures\n"
-        "- JSONDecodeError: JSON parsing errors\n"
-        "- ConnectionError, TimeoutError: Network operations\n\n"
-        f"<code>\n{function}\n</code>\n\n"
-        "Return only the specific exception name(s) that should be handled, separated by commas if multiple. "
-        "Do not include explanations, code, or extra text.\n"
-    )
-    return prompt
-
-def prompt_task3_1_shot(function):
-    # Real example from dataset
-    example_code = EXAMPLE_FLOAT_CONVERSION
-    example_output = "ValueError"
-    
-    prompt = (
-        "Here is an example of identifying exceptions for a Python code snippet:\n\n"
-        f"<code>\n{example_code}\n</code>\n"
-        f"Exception to handle: {example_output}\n\n"
-        "Explanation: The float() function raises ValueError when it cannot convert the string to a float.\n\n"
-        "Now, identify the exception(s) that should be handled for the following code:\n\n"
-        f"<code>\n{function}\n</code>\n\n"
-        "Return only the exception name(s), separated by commas if multiple. "
-        "No explanations or additional text.\n"
-    )
-    return prompt
-
-def prompt_task3_few_shot(function, num_shots=4):
-    examples = [
         (
             EXAMPLE_FLOAT_CONVERSION,
-            "ValueError"
-        ),
-        (
-            EXAMPLE_FILE_READ,
-            "OSError, UnicodeDecodeError"
-        ),
-        (
-            EXAMPLE_DIVISION,
-            "ZeroDivisionError, TypeError"
+            "\n".join([
+                "def can_convert_to_float(string):",
+                "    try:",
+                "        float(string)",
+                "        return True",
+                "    except ValueError:",
+                "        return False",
+                ]),
         ),
         (
             EXAMPLE_DICT_ACCESS,
-            "KeyError"
-        )
+            "\n".join([
+                "def get_user_data(user_dict, key):",
+                "    try:",
+                "        return user_dict[key]",
+                "    except KeyError:",
+                "        return None",
+            ]),
+        ),
     ]
+    parts = ["Examples of minimal try/except insertion:"]
+    for code_text, updated_code in examples[:num_shots]:
+        parts.extend([
+            "<code>",
+            code_text,
+            "</code>",
+            "Updated:",
+            "<code>",
+            updated_code,
+            "</code>",
+            "",
+        ])
+    parts.extend([
+        "Now edit the snippet below in the same style.",
+        "Return only the modified code wrapped in <code> tags.",
+        "<code>",
+        function,
+        "</code>",
+    ])
+    return "\n".join(parts).strip()
 
-    prompt = "Here are examples of Python code snippets and the exceptions they should handle:\n\n"
-    for i, (example_code, example_output) in enumerate(examples[:num_shots], 1):
-        prompt += f"Example {i}:\n<code>\n{example_code}\n</code>\nException(s): {example_output}\n\n"
 
-    prompt += (
-        "Now, identify the exception(s) that should be handled for the following code:\n\n"
-        f"<code>\n{function}\n</code>\n\n"
-        "Return only the exception name(s), separated by commas if multiple. "
-        "No explanations or additional text.\n"
-    )
-    return prompt
+def prompt_task2_cot(function):
+    return "\n".join([
+        "Identify where the Python snippet could fail and insert the minimal try/except block.",
+        "<code>",
+        function,
+        "</code>",
+        "Plan silently and reply with only the updated code wrapped in <code> tags."
+    ])
+
+
+def prompt_task3_default(function):
+    return "\n".join([
+        "List the specific exception names that should be handled for this Python snippet.",
+        "<code>",
+        function,
+        "</code>",
+        "Return only the exception names, comma-separated if needed, with no extra text."
+    ])
+
+
+def prompt_task3_1_shot(function):
+    example_code = EXAMPLE_DIVISION
+    example_output = "ZeroDivisionError"
+    return "\n".join([
+        "Example:",
+        "<code>",
+        example_code,
+        "</code>",
+        f"Answer: {example_output}",
+        "",
+        "Now identify the exception names for the snippet below.",
+        "<code>",
+        function,
+        "</code>",
+        "Return only the exception names, comma-separated if needed, with no extra text."
+    ])
+
+
+def prompt_task3_few_shot(function, num_shots=2):
+    examples = [
+        (EXAMPLE_FILE_READ, "FileNotFoundError"),
+        (EXAMPLE_FLOAT_CONVERSION, "ValueError"),
+        (EXAMPLE_DICT_ACCESS, "KeyError"),
+    ]
+    parts = ["Examples mapping snippets to exception names:"]
+    for code_text, exception_name in examples[:num_shots]:
+        parts.extend([
+            "<code>",
+            code_text,
+            "</code>",
+            f"Answer: {exception_name}",
+            "",
+        ])
+    parts.extend([
+        "Provide the exception names for the snippet below.",
+        "<code>",
+        function,
+        "</code>",
+        "Return only the exception names, comma-separated if needed, with no extra text."
+    ])
+    return "\n".join(parts).strip()
+
 
 def prompt_task3_cot(function):
-    prompt = (
-        "Analyze the following Python code step-by-step to identify the specific exception(s) "
-        "that should be handled:\n\n"
-        f"<code>\n{function}\n</code>\n\n"
-        "Step 1: Scan the code for operations that can raise exceptions:\n"
-        "- File operations: open(), read(), write(), close() → OSError, FileNotFoundError, PermissionError\n"
-        "- Type conversions: int(), float(), str() → ValueError, TypeError\n"
-        "- Arithmetic: division (/, //, %) → ZeroDivisionError, TypeError\n"
-        "- Data access: dict[key] → KeyError, list[index] → IndexError\n"
-        "- Network calls: requests, urllib → ConnectionError, TimeoutError, HTTPError\n"
-        "- JSON parsing: json.loads(), json.dumps() → JSONDecodeError\n"
-        "- Imports: import, from...import → ImportError, ModuleNotFoundError\n"
-        "- Attribute access: obj.attr → AttributeError\n\n"
-        "Step 2: For each risky operation, determine the most specific exception type(s) it can raise.\n\n"
-        "Step 3: Consider edge cases and input validation requirements.\n\n"
-        "Step 4: List the exception name(s) that should be caught, from most specific to most general.\n\n"
-        "Final answer (exception names only, separated by commas if multiple):\n"
-    )
-    return prompt
+    return "\n".join([
+        "Determine the exception names that should be handled for this Python snippet.",
+        "<code>",
+        function,
+        "</code>",
+        "Think through the failure modes silently and reply with only the exception names, comma-separated if needed, no extra text."
+    ])
+
 
 def prompt_task4_default(function):
-    prompt = (
-        "You will be provided with a Python code snippet that may require exception handling.\n"
-        "Your task is to write only the exception handling block (the 'except' clause) that would be appropriate for this code.\n"
-        "Return only the exception handling code block, without the 'try' part, and enclose it within <code> tags.\n\n"
-        f"<code>\n{function}\n</code>\n"
-    )
-    return prompt
+    return "\n".join([
+        "Write only the exception handling block for the risky part of this Python snippet.",
+        "Reuse the snippet's identifiers and message style to stay close to the reference solution.",
+        "Return exactly one <code> block containing only the except clause with proper indentation.",
+        "<code>",
+        function,
+        "</code>",
+    ])
+
 
 def prompt_task4_1_shot(function):
-    example_code = "result = 1 / n"
-    example_output = "<code>\nexcept ZeroDivisionError:\n    print('Division by zero is not allowed')\n</code>"
-    
-    prompt = (
-        "Here is an example of a Python code snippet and its corresponding exception handling block:\n"
-        f"<code>\n{example_code}\n</code>\n"
-        f"Exception handling block:\n{example_output}\n\n"
-        "Now, for the following code, write only the appropriate exception handling block:\n"
-        f"<code>\n{function}\n</code>\n"
-        "Return only the exception handling code block, without the 'try' part, and enclose it within <code> tags.\n"
-    )
-    return prompt
+    example_code = EXAMPLE_DIVISION
+    example_output = "\n".join([
+        "except ZeroDivisionError:",
+        "    print('Division by zero is not allowed')",
+    ])
+    return "\n".join([
+        "Example:",
+        "<code>",
+        example_code,
+        "</code>",
+        "Handler:",
+        "<code>",
+        example_output,
+        "</code>",
+        "",
+        "Write the handler for the snippet below.",
+        "Only return exactly one <code> block containing only the except clause with proper indentation.",
+        "<code>",
+        function,
+        "</code>",
+    ])
+
 
 def prompt_task4_few_shot(function, num_shots=2):
     examples = [
         (
-            "open('file.txt', 'r')",
-            "<code>\nexcept FileNotFoundError:\n    print('File not found')\n</code>"
+            EXAMPLE_FILE_READ,
+            "\n".join([
+                "except FileNotFoundError:",
+                "    print('File not found')",
+            ]),
         ),
         (
-            "value = int('not_a_number')",
-            "<code>\nexcept ValueError:\n    print('Invalid integer')\n</code>"
+            EXAMPLE_FLOAT_CONVERSION,
+            "\n".join([
+                "except ValueError:",
+                "    return False",
+            ]),
         ),
         (
-            "import os\nos.remove('/path/to/file')",
-            "<code>\nexcept OSError as e:\n    if e.errno == errno.ENOENT:\n        print('File not found')\n    elif e.errno == errno.EACCES:\n        print('Permission denied')\n    else:\n        print(f'Error: {e}')\n</code>"
+            EXAMPLE_DICT_ACCESS,
+            "\n".join([
+                "except KeyError:",
+                "    return None",
+            ]),
         ),
     ]
+    parts = ["Examples of snippet to handler mapping:"]
+    for code_text, handler in examples[:num_shots]:
+        parts.extend([
+            "<code>",
+            code_text,
+            "</code>",
+            "Handler:",
+            "<code>",
+            handler,
+            "</code>",
+            "",
+        ])
+    parts.extend([
+        "Write the handler for the snippet below.",
+        "Ensure the block mirrors the snippet's naming and keeps four-space indentation.",
+        "Return exactly one <code> block containing only the except clause.",
+        "<code>",
+        function,
+        "</code>",
+    ])
+    return "\n".join(parts).strip()
 
-    prompt = "Here are examples of Python code snippets and their corresponding exception handling blocks:\n"
-    for example_code, example_output in examples[:num_shots]:
-        prompt += f"<code>\n{example_code}\n</code>\nException handling block:\n{example_output}\n\n"
-
-    prompt += (
-        "Now, write only the appropriate exception handling block for the following code:\n"
-        f"<code>\n{function}\n</code>\n"
-        "Be specific about which exceptions to catch based on the operations in the code.\n"
-        "Return only the exception handling code block, without the 'try' part, and enclose it within <code> tags.\n"
-    )
-    return prompt
 
 def prompt_task4_cot(function):
-    prompt = (
-        "Analyze the following code step-by-step to determine the appropriate exception handling block:\n"
-        f"<code>\n{function}\n</code>\n"
-        "1. Identify the operations in the code that might raise exceptions.\n"
-        "2. Determine the specific exceptions that these operations might raise.\n"
-        "3. Consider any special conditions or error messages that should be handled.\n"
-        "4. Write only the exception handling block (the 'except' clause) that would be appropriate for this code.\n"
-        "Return only the exception handling code block, without the 'try' part, and enclose it within <code> tags.\n"
-    )
-    return prompt
+    return "\n".join([
+        "Decide which exception block best matches this Python snippet.",
+        "<code>",
+        function,
+        "</code>",
+        "Plan silently so the handler aligns closely with the reference style, then reply with a single <code> block containing only the except clause and four-space indentation."
+    ])
 
 """
 TODO: Task 5 to evaluate if the LLM is able to create a test to exception handling code to test the exceptional behavior.

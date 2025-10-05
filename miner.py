@@ -106,29 +106,6 @@ def __get_method_name(node):  # -> str | None:
         if child.type == 'identifier' or child.type == 'object_pattern':
             return child.text.decode("utf-8")
 
-def remove_try_except_blocks(func_body: str) -> str:
-    """
-    Remove all try-except blocks from the function body.
-    """
-    try:
-        # Parse the function body using the parser
-        tree = parser.parse(func_body.encode('utf-8'))
-        root_node = tree.root_node
-
-        # Traverse the tree to remove all try-except blocks
-        new_func_body = []
-        for child in root_node.children:
-            # Skip try-except blocks
-            if child.type == "try_statement":
-                continue
-            # Keep the rest of the code
-            new_func_body.append(child.text.decode("utf-8"))
-
-        # Join the remaining lines of code
-        return "\n".join(new_func_body).strip()
-    except Exception as e:
-        logger.warning(f"Error removing try-except blocks: {str(e)}")
-        return None
 
 
 
@@ -183,15 +160,6 @@ def collect_parser(files, project_name, language, args):
                 if function_identifier is None:
                     raise FunctionDefNotFoundException(
                         f'Function identifier not found:\n {child.text}')
-                
-                func_body = child.text.decode("utf-8")
-
-                # Remover blocos try-except da função
-                code_without_try_except = remove_try_except_blocks(func_body)
-
-                # Se nenhum bloco try-except for encontrado, deixar o campo vazio
-                if code_without_try_except == func_body:
-                    code_without_try_except = ""  # Não houve remoção
 
                 func_defs.append(function_identifier)
                 file_stats.metrics(child, file_path)
@@ -202,10 +170,9 @@ def collect_parser(files, project_name, language, args):
                         pd.DataFrame(
                             [{
                                 "file": file_path,
-                                "function": function_identifier,
-                                "func_body": func_body,
+                                "function": __get_method_name(child),
+                                "func_body": child.text.decode("utf-8"),
                                 'str_uncaught_exceptions': '',
-                                "str_code_without_try_except": code_without_try_except,
                                 **metrics
                             }],
                             columns=df.columns,
