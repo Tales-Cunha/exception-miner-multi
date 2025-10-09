@@ -348,7 +348,7 @@ However, we need know how to evaluate if the exception test created by the devel
 """
 
 def collect_df(task):
-    df = pd.read_csv("/home/talescunha/Jairo/exception-miner-multi/tmp/py_stats_combined.csv")
+    df = pd.read_csv("tmp/py_stats_combined_2.csv")
     df['project'] = 'combined'
     
     if task == 'task1':#700
@@ -404,12 +404,9 @@ TASKS = {
     }
 }
 
-start = time.time()
-model = "incept5/llama3.1-claude"
-model_name = model.split("/")[-1] if "/" in model else model
+models = ["phi4:latest", "deepseek-r1:latest"] #codellama:latest
 project="combined"
 df_result = pd.DataFrame()
-count = 0
 
 # Define a function to save the results to CSV
 def save_results_to_csv(df, task, prompt_type, project, model_name):
@@ -418,34 +415,47 @@ def save_results_to_csv(df, task, prompt_type, project, model_name):
     logger.info(f"Results saved to {output_file}")
 
 # Main processing loop
-for task, prompt_functions in TASKS.items():
-    print(f"Processing {task}...")
+for model in models:
+    model_name = model.split("/")[-1] if "/" in model else model
+    print(f"Processing with model: {model_name}")
 
-    for prompt_type, prompt_func in prompt_functions.items():
-        output = []
-        df = collect_df(task)
-        for i, row in df.iterrows():
-            count += 1
-            print(f"Calling {count} of {len(df)} rows for {prompt_type} prompt of {task}")
-            if row['n_try_except'] == 1:
-                prompt = prompt_func(row['str_code_without_try_except'])
-            else:
-                prompt = prompt_func(row['func_body'])
+    for task, prompt_functions in TASKS.items():
+        print(f"Processing {task}...")
+        for prompt_type, prompt_func in prompt_functions.items():
+            output = []
+            count = 0
+            df = collect_df(task)
+            for i, row in df.iterrows():
+                count += 1
+                print(f"Calling {count} of {len(df)} rows for {prompt_type} prompt of {task}")
+                if row['n_try_except'] == 1:
+                    prompt = prompt_func(row['str_code_without_try_except'])
+                else:
+                    prompt = prompt_func(row['func_body'])
 
-            logger.info(f'PROMPT: {prompt}')
-            response = call_llama(prompt=prompt, model_name=model)
-            logger.info(f'Generated {len(response.json())} tokens in {(time.time() - start):.2f} seconds')
-            logger.info('Response....' + response.json()['response'])
-            output.append(response.json()['response'])
+                # logger.info(f'PROMPT: {prompt}')
+                start = time.time()
+                response = call_llama(prompt=prompt, model_name=model)
+                response_json = response.json()
+                logger.info(f'Response status: {response.status_code}')
+                logger.info(f'Response JSON: {response_json}')
 
-        df_style = df.copy() 
-        df_style['task'] = task
-        df_style['prompt_type'] = prompt_type
-        df_style['llm_response'] = output
+                if 'response' in response_json:
+                    logger.info(f'Generated in {(time.time() - start):.2f} seconds')
+                    logger.info('Response....' + response_json['response'])
+                    output.append(response_json['response'])
+                else:
+                    logger.error(f'Error in response: {response_json}')
+                    output.append('')
 
-        # Save results to CSV after processing each prompt type
-        df_result = pd.concat([df_result, df_style], ignore_index=True)
-        save_results_to_csv(df_style, task, prompt_type, project, model_name)
+            df_style = df.copy()
+            df_style['task'] = task
+            df_style['prompt_type'] = prompt_type
+            df_style['llm_response'] = output
+
+            # Save results to CSV after processing each prompt type
+            df_result = pd.concat([df_result, df_style], ignore_index=True)
+            save_results_to_csv(df_style, task, prompt_type, project, model_name)
 
 # Optionally, you can also combine all results into a final CSV if needed
 final_output_file = f"{os.getcwd()}/llm/output/{project}_{model_name}_results.csv"
