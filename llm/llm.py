@@ -1,9 +1,12 @@
+import argparse
 import pandas as pd
 import logging
 import time
 import requests
 import json
 import os
+
+from typing import List
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
@@ -18,9 +21,8 @@ EXAMPLE_DICT_ACCESS = "def get_user_data(user_dict, key):\n    return user_dict[
 EXAMPLE_SIMPLE_FUNCTION = "def get_tokenizer(cls, pretrained_name=None, **kwargs):\n    kwargs.update(cls.special_tokens_map)\n    return cls.tokenizer_class.from_pretrained(pretrained_name, **kwargs)"
 EXAMPLE_BACKEND_CALL = "def call(self, x):\n    return backend.nn.silu(x)"
 
-# Define the projects
-projects = ["combined"]
-dfs = []
+DEFAULT_PROJECT = "combined"
+DEFAULT_MODELS = ["phi4:latest", "deepseek-r1:latest"]
 
 def prompt_default(function, binary_answers=True):
     return "\n".join([
@@ -202,17 +204,27 @@ def prompt_task3_1_shot(function):
     example_code = EXAMPLE_DIVISION
     example_output = "ZeroDivisionError"
     return "\n".join([
+        "You are auditing Python code to identify the PRIMARY exception class worth handling.",
+        "Study the worked example and copy the response style EXACTLY.",
         "Example:",
         "<code>",
         example_code,
         "</code>",
+        "Reasoning: The divisor `b` might be zero, which raises ZeroDivisionError.",
         f"Answer: {example_output}",
         "",
-        "Now identify the exception names for the snippet below.",
+        "Now analyse the next snippet. Identify the MOST CRITICAL built-in or library exception that the executed statements may raise.",
+        "CRITICAL INSTRUCTIONS:",
+        "1. Return ONLY ONE exception class name - nothing else.",
+        "2. Do not include any code blocks, explanations, or reasoning.",
+        "3. Do not include the word 'Answer:' or any labels.",
+        "4. Return exactly what you see in the example answer format: just the exception name.",
+        "5. Skip generic names such as Exception unless the code explicitly raises them.",
+        "6. Do not add punctuation, commas, or any other characters.",
         "<code>",
         function,
         "</code>",
-        "Return only the exception names, comma-separated if needed, with no extra text."
+        "Your response must be EXACTLY ONE WORD - the exception class name. Nothing more."
     ])
 
 
@@ -347,9 +359,9 @@ TODO: Task 5 to evaluate if the LLM is able to create a test to exception handli
 However, we need know how to evaluate if the exception test created by the developer is equivalent to the test created by the LLM.
 """
 
-def collect_df(task):
+def collect_df(task, project: str = DEFAULT_PROJECT):
     df = pd.read_csv("tmp/py_stats_combined_2.csv")
-    df['project'] = 'combined'
+    df['project'] = project
     
     if task == 'task1':#700
         pos_samples = df[df['n_try_except'] == 1]
@@ -404,59 +416,131 @@ TASKS = {
     }
 }
 
-models = ["phi4:latest", "deepseek-r1:latest"] #codellama:latest
-project="combined"
-df_result = pd.DataFrame()
+def sanitize_for_filename(value: str) -> str:
+    return "".join(ch if ch.isalnum() or ch in ("-", "_") else "-" for ch in value)
 
-# Define a function to save the results to CSV
-def save_results_to_csv(df, task, prompt_type, project, model_name):
-    output_file = f"{os.getcwd()}/llm/output/{project}_{model_name}_{task}_{prompt_type}_results.csv"
+
+def save_results_to_csv(df, task, prompt_type, project, model_label):
+    output_dir = os.path.join(os.getcwd(), "llm", "output")
+    os.makedirs(output_dir, exist_ok=True)
+    filename = f"{project}_{model_label}_{task}_{prompt_type}_results.csv"
+    output_file = os.path.join(output_dir, filename)
     df.to_csv(output_file, index=False)
     logger.info(f"Results saved to {output_file}")
 
-# Main processing loop
-for model in models:
-    model_name = model.split("/")[-1] if "/" in model else model
-    print(f"Processing with model: {model_name}")
 
-    for task, prompt_functions in TASKS.items():
-        print(f"Processing {task}...")
-        for prompt_type, prompt_func in prompt_functions.items():
-            output = []
-            count = 0
-            df = collect_df(task)
-            for i, row in df.iterrows():
-                count += 1
-                print(f"Calling {count} of {len(df)} rows for {prompt_type} prompt of {task}")
-                if row['n_try_except'] == 1:
-                    prompt = prompt_func(row['str_code_without_try_except'])
-                else:
-                    prompt = prompt_func(row['func_body'])
+def parse_args():
+    parser = argparse.ArgumentParser(description="Run LLM exception mining experiments.")
+    parser.add_argument(
+        "--tasks",
+        nargs="+",
+        choices=list(TASKS.keys()),
+        help="Subset of tasks to run (default: all tasks).",
+    )
+    prompt_choices = sorted({prompt for prompts in TASKS.values() for prompt in prompts})
+    parser.add_argument(
+        "--prompt-types",
+        nargs="+",
+        choices=prompt_choices,
+        help="Subset of prompt styles to run (default: all styles).",
+    )
+    parser.add_argument(
+        "--models",
+        nargs="+",
+        help="One or more Ollama model names (default: phi4:latest deepseek-r1:latest).",
+    )
+    parser.add_argument(
+        "--limit",
+        type=int,
+        help="Optional limit on the number of rows processed per task.",
+    )
+    parser.add_argument(
+        "--project",
+        default=DEFAULT_PROJECT,
+        help="Project label used in the output filenames (default: combined).",
+    )
+    return parser.parse_args()
 
-                # logger.info(f'PROMPT: {prompt}')
-                start = time.time()
-                response = call_llama(prompt=prompt, model_name=model)
-                response_json = response.json()
-                logger.info(f'Response status: {response.status_code}')
-                logger.info(f'Response JSON: {response_json}')
 
-                if 'response' in response_json:
-                    logger.info(f'Generated in {(time.time() - start):.2f} seconds')
-                    logger.info('Response....' + response_json['response'])
-                    output.append(response_json['response'])
-                else:
-                    logger.error(f'Error in response: {response_json}')
-                    output.append('')
+def main():
+    args = parse_args()
+    models_to_run: List[str] = args.models or DEFAULT_MODELS
+    tasks_to_run = args.tasks or list(TASKS.keys())
+    prompt_types_filter = set(args.prompt_types) if args.prompt_types else None
 
-            df_style = df.copy()
-            df_style['task'] = task
-            df_style['prompt_type'] = prompt_type
-            df_style['llm_response'] = output
+    df_result = pd.DataFrame()
 
-            # Save results to CSV after processing each prompt type
-            df_result = pd.concat([df_result, df_style], ignore_index=True)
-            save_results_to_csv(df_style, task, prompt_type, project, model_name)
+    for model in models_to_run:
+        model_label = sanitize_for_filename(model.split("/")[-1] if "/" in model else model)
+        print(f"Processing with model: {model}")
 
-# Optionally, you can also combine all results into a final CSV if needed
-final_output_file = f"{os.getcwd()}/llm/output/{project}_{model_name}_results.csv"
-df_result.to_csv(final_output_file, index=False)
+        for task in tasks_to_run:
+            print(f"Processing {task}...")
+            prompt_functions = TASKS[task]
+
+            for prompt_type, prompt_func in prompt_functions.items():
+                if prompt_types_filter and prompt_type not in prompt_types_filter:
+                    continue
+
+                output = []
+                df = collect_df(task, project=args.project)
+                if args.limit is not None:
+                    df = df.head(args.limit)
+
+                for index, row in df.iterrows():
+                    call_count = index + 1
+                    print(
+                        f"Calling {call_count} of {len(df)} rows for {prompt_type} prompt of {task}"
+                    )
+                    if row['n_try_except'] == 1:
+                        prompt = prompt_func(row['str_code_without_try_except'])
+                    else:
+                        prompt = prompt_func(row['func_body'])
+
+                    start = time.time()
+                    try:
+                        response = call_llama(prompt=prompt, model_name=model)
+                        response.raise_for_status()
+                        response_json = response.json()
+                    except requests.RequestException as exc:
+                        logger.error(f"HTTP error from Ollama: {exc}")
+                        output.append('')
+                        continue
+                    except json.JSONDecodeError as exc:
+                        logger.error(f"Invalid JSON in Ollama response: {exc}")
+                        output.append('')
+                        continue
+
+                    logger.info(f'Response status: {response.status_code}')
+                    logger.info(f'Response JSON: {response_json}')
+
+                    if 'response' in response_json:
+                        logger.info(f'Generated in {(time.time() - start):.2f} seconds')
+                        logger.info('Response....' + response_json['response'])
+                        output.append(response_json['response'])
+                    else:
+                        logger.error(f'Error in response: {response_json}')
+                        output.append('')
+
+                df_style = df.copy()
+                df_style['task'] = task
+                df_style['prompt_type'] = prompt_type
+                df_style['llm_response'] = output
+
+                df_result = pd.concat([df_result, df_style], ignore_index=True)
+                save_results_to_csv(df_style, task, prompt_type, args.project, model_label)
+
+    if not df_result.empty:
+        aggregate_label = sanitize_for_filename("-".join(models_to_run))
+        final_output_file = os.path.join(
+            os.getcwd(),
+            "llm",
+            "output",
+            f"{args.project}_{aggregate_label}_results.csv",
+        )
+        df_result.to_csv(final_output_file, index=False)
+        logger.info(f"Combined results saved to {final_output_file}")
+
+
+if __name__ == "__main__":
+    main()
