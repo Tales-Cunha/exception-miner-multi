@@ -15,22 +15,22 @@ task1,style-cot,codellama-latest,Accuracy,0.47150997150997154
 task1,style-cot,codellama-latest,Precision,0.47596153846153844
 task1,style-cot,codellama-latest,Recall,0.5641025641025641
 task1,style-cot,codellama-latest,F-measure,0.516297262059974
-task2,style-few-shot,codellama-latest,Accuracy,0.7177543859649123
-task2,style-few-shot,codellama-latest,Precision,0.179375
-task2,style-few-shot,codellama-latest,Recall,0.2913705583756345
-task2,style-few-shot,codellama-latest,F-measure,0.2220502901353965
-task2,style-default,codellama-latest,Accuracy,0.8014018691588785
-task2,style-default,codellama-latest,Precision,0.24066390041493776
-task2,style-default,codellama-latest,Recall,0.1766497461928934
-task2,style-default,codellama-latest,F-measure,0.20374707259953162
-task2,style-1-shot,codellama-latest,Accuracy,0.8428677014042868
-task2,style-1-shot,codellama-latest,Precision,0.4025
-task2,style-1-shot,codellama-latest,Recall,0.1634517766497462
-task2,style-1-shot,codellama-latest,F-measure,0.23249097472924188
-task2,style-cot,codellama-latest,Accuracy,0.7630982724440668
-task2,style-cot,codellama-latest,Precision,0.09144893111638955
-task2,style-cot,codellama-latest,Recall,0.07817258883248732
-task2,style-cot,codellama-latest,F-measure,0.0842911877394636
+task2,style-few-shot,codellama-latest,Accuracy,0.8621856866537717
+task2,style-few-shot,codellama-latest,Precision,0.32085561497326204
+task2,style-few-shot,codellama-latest,Recall,0.27522935779816515
+task2,style-few-shot,codellama-latest,F-measure,0.2962962962962963
+task2,style-default,codellama-latest,Accuracy,0.8831798351914687
+task2,style-default,codellama-latest,Precision,0.38144329896907214
+task2,style-default,codellama-latest,Recall,0.16972477064220184
+task2,style-default,codellama-latest,F-measure,0.23492063492063492
+task2,style-1-shot,codellama-latest,Accuracy,0.8991312741312741
+task2,style-1-shot,codellama-latest,Precision,0.5542168674698795
+task2,style-1-shot,codellama-latest,Recall,0.21100917431192662
+task2,style-1-shot,codellama-latest,F-measure,0.30564784053156147
+task2,style-cot,codellama-latest,Accuracy,0.883495145631068
+task2,style-cot,codellama-latest,Precision,0.25
+task2,style-cot,codellama-latest,Recall,0.05045871559633028
+task2,style-cot,codellama-latest,F-measure,0.08396946564885496
 task3,style-default,codellama-latest,Mean Accuracy@k,0.022792022792022793
 task3,style-default,codellama-latest,Macro F1-score,0.01862816764132554
 task3,style-default,codellama-latest,Weighted F1-score,0.03730036592455799
@@ -67,18 +67,26 @@ task1,style-default,phi4-latest,Accuracy,0.6638176638176638
 task1,style-default,phi4-latest,Precision,0.6112185686653772
 task1,style-default,phi4-latest,Recall,0.9002849002849003
 task1,style-default,phi4-latest,F-measure,0.728110599078341
-task2,style-default,phi4-latest,Accuracy,0.5502793296089385
-task2,style-default,phi4-latest,Precision,0.1414694894146949
-task2,style-default,phi4-latest,Recall,0.5766497461928934
-task2,style-default,phi4-latest,F-measure,0.2272
-task2,style-few-shot,phi4-latest,Accuracy,0.7975372279495991
-task2,style-few-shot,phi4-latest,Precision,0.01580135440180587
-task2,style-few-shot,phi4-latest,Recall,0.007106598984771574
-task2,style-few-shot,phi4-latest,F-measure,0.00980392156862745
-task2,style-1-shot,phi4-latest,Accuracy,0.7463631465517241
-task2,style-1-shot,phi4-latest,Precision,0.11226252158894647
-task2,style-1-shot,phi4-latest,Recall,0.1319796954314721
-task2,style-1-shot,phi4-latest,F-measure,0.12132524498366776
+task1,style-1-shot,phi4-latest,Accuracy,0.613960113960114
+task1,style-1-shot,phi4-latest,Precision,0.5706713780918727
+task1,style-1-shot,phi4-latest,Recall,0.9202279202279202
+task1,style-1-shot,phi4-latest,F-measure,0.7044711014176663
+task2,style-default,phi4-latest,Accuracy,0.8532818532818532
+task2,style-default,phi4-latest,Precision,0.285
+task2,style-default,phi4-latest,Recall,0.26146788990825687
+task2,style-default,phi4-latest,F-measure,0.2727272727272727
+task2,style-few-shot,phi4-latest,Accuracy,0.8868382710053424
+task2,style-few-shot,phi4-latest,Precision,0.0
+task2,style-few-shot,phi4-latest,Recall,0.0
+task2,style-few-shot,phi4-latest,F-measure,0.0
+task2,style-1-shot,phi4-latest,Accuracy,0.8894787644787645
+task2,style-1-shot,phi4-latest,Precision,0.2962962962962963
+task2,style-1-shot,phi4-latest,Recall,0.03669724770642202
+task2,style-1-shot,phi4-latest,F-measure,0.0653061224489796
+task2,style-cot,phi4-latest,Accuracy,0.8792434529582929
+task2,style-cot,phi4-latest,Precision,0.08108108108108109
+task2,style-cot,phi4-latest,Recall,0.013761467889908258
+task2,style-cot,phi4-latest,F-measure,0.023529411764705882
 task3,style-1-shot,phi4-latest,Mean Accuracy@k,0.23646723646723647
 task3,style-1-shot,phi4-latest,Macro F1-score,0.117143436342521
 task3,style-1-shot,phi4-latest,Weighted F1-score,0.21666921284308577
@@ -87,6 +95,10 @@ task3,style-default,phi4-latest,Mean Accuracy@k,0.2564102564102564
 task3,style-default,phi4-latest,Macro F1-score,0.10797770387940908
 task3,style-default,phi4-latest,Weighted F1-score,0.19018224780237303
 task3,style-default,phi4-latest,Weighted Accuracy,0.07122507122507123
+task3,style-cot,phi4-latest,Mean Accuracy@k,0.24786324786324787
+task3,style-cot,phi4-latest,Macro F1-score,0.08976706230830217
+task3,style-cot,phi4-latest,Weighted F1-score,0.18120424082644593
+task3,style-cot,phi4-latest,Weighted Accuracy,0.039886039886039885
 task3,style-few-shot,phi4-latest,Mean Accuracy@k,0.24216524216524216
 task3,style-few-shot,phi4-latest,Macro F1-score,0.13288571161861815
 task3,style-few-shot,phi4-latest,Weighted F1-score,0.1801320025065942
@@ -103,3 +115,7 @@ task4,style-default,phi4-latest,Text Similarity,0.38151974288337925
 task4,style-default,phi4-latest,Exception Precision,0.3333333333333333
 task4,style-default,phi4-latest,Exception Recall,0.3333333333333333
 task4,style-default,phi4-latest,Exception F1,0.3333333333333333
+task4,style-cot,phi4-latest,Text Similarity,0
+task4,style-cot,phi4-latest,Exception Precision,0
+task4,style-cot,phi4-latest,Exception Recall,0
+task4,style-cot,phi4-latest,Exception F1,0

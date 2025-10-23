@@ -73,28 +73,36 @@ def load_dataframe_with_model():
 
 
 def extract_statements(code):
+    """
+    Extract top-level statements from code (not nested statements).
+    Handles both module-level code and function bodies.
+    """
     try:
         tree = ast.parse(code)
-        return [node for node in ast.walk(tree) if isinstance(node, ast.stmt)]
+        # If the code is a function definition, extract statements from the function body
+        if tree.body and isinstance(tree.body[0], ast.FunctionDef):
+            return tree.body[0].body
+        # Otherwise return module-level statements
+        return tree.body
     except:
         return []
 
 
-""" Function to create vector representation of try block. 
-For example, if the code has 3 statements inside the try block that contains 6 statements, the vector will be [1, 1, 1, 0, 0, 0]
-"""
-
-
 def create_try_vector(code):
+    """
+    Create a binary vector indicating which top-level statements are try blocks.
+    Example: [0, 1, 1, 0] means the 2nd and 3rd top-level statements are try blocks.
+
+    This correctly maps statements to vector indices using top-level statement order,
+    not AST line numbers.
+    """
     statements = extract_statements(code)
     vector = [0] * len(statements)
 
     for i, stmt in enumerate(statements):
         if isinstance(stmt, ast.Try):
-            for body_stmt in stmt.body:
-                start = body_stmt.lineno
-                end = body_stmt.end_lineno
-                vector[start - 1 : end] = [1] * (end - start + 1)
+            # Mark this statement as a try block
+            vector[i] = 1
 
     return vector
 
@@ -234,7 +242,7 @@ for model in models:
             if task == "task1":
                 y_true = results["n_try_except"]
                 y_pred = results["llm_response"].apply(
-                    lambda x: 1 if "yes" in x.lower() else 0
+                    lambda x: 1 if (isinstance(x, str) and "yes" in x.lower()) else 0
                 )
 
                 # Calculate metrics
