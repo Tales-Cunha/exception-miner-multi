@@ -18,6 +18,8 @@ from sklearn.metrics import (
     recall_score,
 )
 from sklearn.preprocessing import MultiLabelBinarizer
+from nltk.translate.bleu_score import sentence_bleu, SmoothingFunction
+from codebleu import calc_codebleu
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
@@ -143,23 +145,55 @@ def parse_task3_response(response):
 
 # Function to parse str_except_identifiers
 def parse_str_except_identifiers(identifiers):
-    try:
-        # Convert string representation of list to actual list
-        return ast.literal_eval(identifiers)
-    except:
+    """
+    Parse exception identifiers from string format.
+
+    Handles multiple formats:
+    - Single exception: "KeyError"
+    - Space-separated: "IOError ValueError"
+    - Comma-separated: "KeyError, ValueError"
+    """
+    if not isinstance(identifiers, str) or pd.isnull(identifiers):
         return []
+
+    identifiers = identifiers.strip()
+    if not identifiers:
+        return []
+
+    # Try comma-separated first (most explicit)
+    if "," in identifiers:
+        exceptions = [exc.strip() for exc in identifiers.split(",")]
+    else:
+        # Otherwise treat as space-separated or single exception
+        exceptions = identifiers.split()
+
+    # Remove empty strings and return
+    return [exc for exc in exceptions if exc]
 
 
 # Function to extract except block from LLM response for task4
 def extract_except_block(response):
-    try:
-        # Extract code block from the response
-        code_block = re.search(r"<code>(.*?)</code>", response, re.DOTALL).group(1)
-        code_block = code_block.replace("\n", "")  # Remove newline characters
-
-        return code_block.strip()
-    except:
+    """
+    Extract code block from LLM response.
+    Handles both markdown (```code```) and XML (<code>code</code>) formats.
+    """
+    if not isinstance(response, str):
         return ""
+
+    # Try markdown code block first (with optional language specifier)
+    markdown_match = re.search(r'```(?:python)?\n(.*?)\n```', response, re.DOTALL)
+    if markdown_match:
+        return markdown_match.group(1).strip()
+
+    # Try XML code tags
+    try:
+        xml_match = re.search(r"<code>(.*?)</code>", response, re.DOTALL)
+        if xml_match:
+            return xml_match.group(1).strip()
+    except:
+        pass
+
+    return ""
 
 
 def evaluate_exception_handling(true_code, pred_code):
@@ -213,6 +247,48 @@ def evaluate_exception_handling(true_code, pred_code):
         "exception_recall": exception_recall,
         "exception_f1": exception_f1,
     }
+
+
+# Function to calculate BLEU score for code
+def calculate_bleu_score(reference, hypothesis, weights=(0.25, 0.25, 0.25, 0.25)):
+    """
+    Calculate BLEU score for code snippets.
+
+    Args:
+        reference: Reference (ground truth) code as string
+        hypothesis: Generated (predicted) code as string
+        weights: Weights for n-grams (default: equal weights for 1-4 grams)
+
+    Returns:
+        BLEU score (0-1)
+    """
+    # Tokenize code into words (simple whitespace and punctuation split)
+    def tokenize_code(code):
+        # Split on whitespace and keep some punctuation
+        tokens = re.findall(r'\w+|[()[\]{},:.;=<>!+-/*&|]', code)
+        return tokens
+
+    ref_tokens = tokenize_code(reference)
+    hyp_tokens = tokenize_code(hypothesis)
+
+    if not hyp_tokens:
+        return 0.0
+
+    # Convert to list of references (required by NLTK)
+    reference_list = [ref_tokens]
+
+    try:
+        # Use smoothing to handle cases with few matches
+        smoothing_function = SmoothingFunction().method1
+        bleu_score = sentence_bleu(
+            reference_list,
+            hyp_tokens,
+            weights=weights,
+            smoothing_function=smoothing_function
+        )
+        return bleu_score
+    except:
+        return 0.0
 
 
 # Function to calculate similarity between two code blocks
@@ -377,26 +453,14 @@ for model in models:
                 accuracies = []  # List to store individual Accuracy@k values
                 k = 3  # Set the value of k
                 for _, row in results.iterrows():
-                    true_exceptions = row[
-                        "str_except_identifiers"
-                    ]  # Parse true exceptions
+                    # Parse true exceptions using the proper parser
+                    true_exceptions = parse_str_except_identifiers(
+                        row["str_except_identifiers"]
+                    )
+                    # Parse predicted exceptions
                     predicted_exceptions = parse_task3_response(
                         row["llm_response"]
-                    )  # Parse predicted exceptions
-
-                    # Handle potential NaN values and ensure the values are lists
-                    if pd.isnull(true_exceptions):
-                        true_exceptions = []
-                    elif not isinstance(true_exceptions, list):
-                        true_exceptions = [true_exceptions]
-
-                    if predicted_exceptions is None or (
-                        isinstance(predicted_exceptions, float)
-                        and pd.isnull(predicted_exceptions)
-                    ):
-                        predicted_exceptions = []
-                    elif not isinstance(predicted_exceptions, list):
-                        predicted_exceptions = [predicted_exceptions]
+                    )
 
                     # Extend the lists for multi-label classification
                     y_true.append(true_exceptions)
@@ -484,48 +548,69 @@ for model in models:
                 )
 
             elif task == "task4":
-                y_true = results["str_captures_except"]
+                y_true_raw = results["str_captures_except"]
                 y_pred = results["llm_response"].apply(extract_except_block)
 
-                # Advanced metrics
-                metrics = []
+                # Parse ground truth (stored as Python list string representation)
+                y_true = []
+                for true_raw in y_true_raw:
+                    try:
+                        # Try to parse as Python list
+                        if isinstance(true_raw, str) and true_raw.strip().startswith('['):
+                            true_list = ast.literal_eval(true_raw)
+                            true_code = true_list[0] if isinstance(true_list, list) and len(true_list) > 0 else str(true_list)
+                        else:
+                            true_code = true_raw
+                        y_true.append(true_code)
+                    except:
+                        y_true.append(true_raw)
+
+                # Calculate BLEU and CodeBLEU scores
+                bleu_scores = []
+                codebleu_scores = []
+
                 for true, pred in zip(y_true, y_pred):
                     if true and pred:  # Only evaluate if both exist
-                        evaluation = evaluate_exception_handling(true, pred)
-                        metrics.append(evaluation)
+                        # Calculate BLEU score
+                        bleu = calculate_bleu_score(true, pred)
+                        bleu_scores.append(bleu)
+
+                        # Calculate CodeBLEU score
+                        try:
+                            # CodeBLEU expects language parameter ('python' for Python code)
+                            codebleu = calc_codebleu(
+                                [true],  # references should be a list
+                                pred,    # prediction is a single string
+                                lang='python'
+                            )
+                            codebleu_scores.append(codebleu)
+                        except Exception as e:
+                            # If CodeBLEU fails, use BLEU as fallback
+                            logger.debug(f"CodeBLEU calculation failed: {e}")
+                            codebleu_scores.append(bleu)
 
                 # Calculate average metrics
-                if metrics:
-                    avg_text_similarity = sum(
-                        m["text_similarity"] for m in metrics
-                    ) / len(metrics)
-                    avg_exception_precision = sum(
-                        m["exception_precision"] for m in metrics
-                    ) / len(metrics)
-                    avg_exception_recall = sum(
-                        m["exception_recall"] for m in metrics
-                    ) / len(metrics)
-                    avg_exception_f1 = sum(m["exception_f1"] for m in metrics) / len(
-                        metrics
-                    )
+                if bleu_scores:
+                    avg_bleu = sum(bleu_scores) / len(bleu_scores)
                 else:
-                    avg_text_similarity = avg_exception_precision = (
-                        avg_exception_recall
-                    ) = avg_exception_f1 = 0
+                    avg_bleu = 0.0
 
-                print(f"\nAdvanced Metrics for {prompt_type} prompt in task 4:")
-                print(f"Average Text Similarity:       {avg_text_similarity:.2f}")
-                print(f"Exception Type Precision:      {avg_exception_precision:.2f}")
-                print(f"Exception Type Recall:         {avg_exception_recall:.2f}")
-                print(f"Exception Type F1:             {avg_exception_f1:.2f}")
+                if codebleu_scores:
+                    avg_codebleu = sum(codebleu_scores) / len(codebleu_scores)
+                else:
+                    avg_codebleu = 0.0
+
+                print(f"\nMetrics for {prompt_type} prompt in task 4:")
+                print(f"Average BLEU Score:        {avg_bleu:.4f}")
+                print(f"Average CodeBLEU Score:    {avg_codebleu:.4f}")
 
                 metrics_data.append(
                     {
                         "task": task,
                         "style-prompt": prompt_type,
                         "model": model,
-                        "metric": "Text Similarity",
-                        "value": avg_text_similarity,
+                        "metric": "BLEU",
+                        "value": avg_bleu,
                     }
                 )
                 metrics_data.append(
@@ -533,26 +618,8 @@ for model in models:
                         "task": task,
                         "style-prompt": prompt_type,
                         "model": model,
-                        "metric": "Exception Precision",
-                        "value": avg_exception_precision,
-                    }
-                )
-                metrics_data.append(
-                    {
-                        "task": task,
-                        "style-prompt": prompt_type,
-                        "model": model,
-                        "metric": "Exception Recall",
-                        "value": avg_exception_recall,
-                    }
-                )
-                metrics_data.append(
-                    {
-                        "task": task,
-                        "style-prompt": prompt_type,
-                        "model": model,
-                        "metric": "Exception F1",
-                        "value": avg_exception_f1,
+                        "metric": "CodeBLEU",
+                        "value": avg_codebleu,
                     }
                 )
 
