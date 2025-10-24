@@ -26,7 +26,7 @@ EXAMPLE_SIMPLE_FUNCTION = "def get_tokenizer(cls, pretrained_name=None, **kwargs
 EXAMPLE_BACKEND_CALL = "def call(self, x):\n    return backend.nn.silu(x)"
 
 DEFAULT_PROJECT = "combined"
-DEFAULT_MODELS = ["deepseek-r1:latest", "phi4:latest", "codellama:latest"]
+DEFAULT_MODELS = ["phi4:latest", "codellama:latest", "mistral:7b", "gemma2:9b", "deepseek-r1:8b"]
 
 
 def prompt_default(function, binary_answers=True):
@@ -420,7 +420,7 @@ However, we need know how to evaluate if the exception test created by the devel
 
 
 def collect_df(task, project: str = DEFAULT_PROJECT):
-    df = pd.read_csv("tmp/py_stats_combined_2.csv")
+    df = pd.read_csv("tmp/balanced_sample.csv")
     df["project"] = project
 
     if task == "task1":  # 700
