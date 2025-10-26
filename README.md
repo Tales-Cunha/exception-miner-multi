@@ -175,6 +175,47 @@ This script will:
   - **Task 4**: BLEU score, CodeBLEU score
 - Generate metrics CSV files: `llm/output/metrics_task1.csv` to `llm/output/metrics_task4.csv`
 
+#### 3. Analyze Human Evaluation Results
+
+To analyze human evaluation results from the LLM experiment, use the human evaluation analysis script:
+
+```bash
+python llm/task4_human_eval.py
+```
+
+##### Human Evaluation Datasets
+
+The human evaluation datasets are located in `llm/data_human_eval/`:
+- `100_sample_participant1.csv`: Evaluations from participant 1 (100 samples)
+- `100_sample _participant2.csv`: Evaluations from participant 2 (100 samples)
+- `100_sample_participant3.csv`: Evaluations from participant 3 (100 samples)
+
+Each CSV file contains:
+- `model`: The LLM model being evaluated (codellama, gemma, mistral, phi4)
+- `func_body`: The original Python function
+- `llm_response`: The LLM's generated response
+- `str_captures_except`: The expected exception handling code
+- `evaluation`: Human evaluation score (1-5 scale)
+
+##### Human Evaluation Analysis Script
+
+The `llm/task4_human_eval.py` script analyzes all human evaluation datasets and generates a summary report.
+
+**Output:**
+- Generates `llm/output/evaluation_summary.csv` with aggregated statistics
+- Displays formatted summary in console logs
+
+**Model Mapping:**
+- Model1 → codellama
+- Model2 → gemma
+- Model3 → mistral
+- Model4 → phi4
+
+**Running with Custom Python Environment:**
+```bash
+/path/to/python llm/task4_human_eval.py
+```
+
 ### Output Files
 
 Results are saved to `llm/output/`:
