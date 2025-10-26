@@ -1,5 +1,3 @@
-# import seaborn as sns
-# import matplotlib.pyplot as plt
 import ast
 import csv
 import logging
@@ -9,7 +7,6 @@ from difflib import SequenceMatcher
 
 import pandas as pd
 
-# import numpy as np
 from sklearn.metrics import (
     accuracy_score,
     confusion_matrix,
@@ -35,7 +32,6 @@ def extract_model_from_filename(filename):
     Example: combined_phi4:latest_task1_style-few-shot_results.csv -> phi4:latest
     Example: combined_codellama-latest_results_all.csv -> codellama-latest
     """
-    # Try pattern for aggregate results file first
     match = re.match(r"combined_(.+?)_results_all\.csv", filename)
     if match:
         return match.group(1)
@@ -81,10 +77,8 @@ def extract_statements(code):
     """
     try:
         tree = ast.parse(code)
-        # If the code is a function definition, extract statements from the function body
         if tree.body and isinstance(tree.body[0], ast.FunctionDef):
             return tree.body[0].body
-        # Otherwise return module-level statements
         return tree.body
     except:
         return []
@@ -116,22 +110,18 @@ def parse_task_response2(response):
         return ""
 
     try:
-        # Try to extract code block with <code> tags
         code_block = re.search(r"<code>(.*?)</code>", response, re.DOTALL).group(1)
-        # Keep newlines for proper Python parsing
         return code_block.strip()
     except:
         # If no <code> tags found, try to extract Python code directly from response
         # Look for function definitions or other code patterns
         if "def " in response:
-            # Try to extract the main function definition
             match = re.search(r"(def\s+\w+.*?)(?=\ndef\s|\Z)", response, re.DOTALL)
             if match:
                 return match.group(1).strip()
         return ""
 
 
-# Function to parse LLM response for task3
 def parse_task3_response(response):
     # Handle NaN or non-string values
     if not isinstance(response, str) or pd.isnull(response):
@@ -143,7 +133,6 @@ def parse_task3_response(response):
     return exceptions
 
 
-# Function to parse str_except_identifiers
 def parse_str_except_identifiers(identifiers):
     """
     Parse exception identifiers from string format.
@@ -160,18 +149,14 @@ def parse_str_except_identifiers(identifiers):
     if not identifiers:
         return []
 
-    # Try comma-separated first (most explicit)
     if "," in identifiers:
         exceptions = [exc.strip() for exc in identifiers.split(",")]
     else:
-        # Otherwise treat as space-separated or single exception
         exceptions = identifiers.split()
 
-    # Remove empty strings and return
     return [exc for exc in exceptions if exc]
 
 
-# Function to extract except block from LLM response for task4
 def extract_except_block(response):
     """
     Extract code block from LLM response.
@@ -180,12 +165,10 @@ def extract_except_block(response):
     if not isinstance(response, str):
         return ""
 
-    # Try markdown code block first (with optional language specifier)
     markdown_match = re.search(r'```(?:python)?\n(.*?)\n```', response, re.DOTALL)
     if markdown_match:
         return markdown_match.group(1).strip()
 
-    # Try XML code tags
     try:
         xml_match = re.search(r"<code>(.*?)</code>", response, re.DOTALL)
         if xml_match:
@@ -199,30 +182,23 @@ def extract_except_block(response):
 def evaluate_exception_handling(true_code, pred_code):
     """Evaluate exception handling code more accurately"""
 
-    # Clean and normalize the code snippets
     def normalize_code(code):
-        # Remove whitespace variations and comments
         code = re.sub(r"#.*$", "", code, flags=re.MULTILINE)
         code = re.sub(r"\s+", " ", code).strip()
         return code
 
-    # Extract exception types
     def extract_exception_types(code):
         exception_pattern = r"except\s+(\w+(?:\.\w+)*)(?:\s+as\s+\w+)?:"
         return set(re.findall(exception_pattern, code))
 
-    # Normalize both code snippets
     norm_true = normalize_code(true_code)
     norm_pred = normalize_code(pred_code)
 
-    # Calculate basic similarity
     similarity = SequenceMatcher(None, norm_true, norm_pred).ratio()
 
-    # Compare exception types
     true_exceptions = extract_exception_types(true_code)
     pred_exceptions = extract_exception_types(pred_code)
 
-    # Calculate exception type precision and recall
     exception_precision = (
         len(true_exceptions.intersection(pred_exceptions)) / len(pred_exceptions)
         if pred_exceptions
@@ -249,7 +225,6 @@ def evaluate_exception_handling(true_code, pred_code):
     }
 
 
-# Function to calculate BLEU score for code
 def calculate_bleu_score(reference, hypothesis, weights=(0.25, 0.25, 0.25, 0.25)):
     """
     Calculate BLEU score for code snippets.
@@ -262,9 +237,7 @@ def calculate_bleu_score(reference, hypothesis, weights=(0.25, 0.25, 0.25, 0.25)
     Returns:
         BLEU score (0-1)
     """
-    # Tokenize code into words (simple whitespace and punctuation split)
     def tokenize_code(code):
-        # Split on whitespace and keep some punctuation
         tokens = re.findall(r'\w+|[()[\]{},:.;=<>!+-/*&|]', code)
         return tokens
 
@@ -274,7 +247,6 @@ def calculate_bleu_score(reference, hypothesis, weights=(0.25, 0.25, 0.25, 0.25)
     if not hyp_tokens:
         return 0.0
 
-    # Convert to list of references (required by NLTK)
     reference_list = [ref_tokens]
 
     try:
@@ -301,7 +273,7 @@ df = load_dataframe_with_model()
 
 tasks = ["task1", "task2", "task3", "task4"]
 models = df["model"].unique().tolist() if "model" in df.columns and not df.empty else []
-metrics_data = []
+metrics_data = {task: [] for task in tasks}
 
 print(f"Found {len(models)} models: {models}")
 print(f"Found {len(df)} total rows")
@@ -321,7 +293,6 @@ for model in models:
                     lambda x: 1 if (isinstance(x, str) and "yes" in x.lower()) else 0
                 )
 
-                # Calculate metrics
                 accuracy = accuracy_score(y_true, y_pred)
                 precision = precision_score(y_true, y_pred)
                 recall = recall_score(y_true, y_pred)
@@ -333,12 +304,11 @@ for model in models:
                 print(f"Recall: {recall:.2f}")
                 print(f"F-measure: {f_measure:.2f}")
 
-                # Confusion Matrix
                 cm = confusion_matrix(y_true, y_pred)
                 print("\nConfusion Matrix:")
                 print(cm)
 
-                metrics_data.append(
+                metrics_data[task].append(
                     {
                         "task": task,
                         "style-prompt": prompt_type,
@@ -347,7 +317,7 @@ for model in models:
                         "value": accuracy,
                     }
                 )
-                metrics_data.append(
+                metrics_data[task].append(
                     {
                         "task": task,
                         "style-prompt": prompt_type,
@@ -356,7 +326,7 @@ for model in models:
                         "value": precision,
                     }
                 )
-                metrics_data.append(
+                metrics_data[task].append(
                     {
                         "task": task,
                         "style-prompt": prompt_type,
@@ -365,7 +335,7 @@ for model in models:
                         "value": recall,
                     }
                 )
-                metrics_data.append(
+                metrics_data[task].append(
                     {
                         "task": task,
                         "style-prompt": prompt_type,
@@ -375,7 +345,7 @@ for model in models:
                     }
                 )
 
-            elif task == "task2":  # task2
+            elif task == "task2":  
                 y_true = []
                 y_pred = []
                 for _, row in results.iterrows():
@@ -393,7 +363,6 @@ for model in models:
                     y_true.extend(original_vector)
                     y_pred.extend(llm_vector)
 
-                # Calculate metrics
                 accuracy = accuracy_score(y_true, y_pred)
                 precision = precision_score(y_true, y_pred)
                 recall = recall_score(y_true, y_pred)
@@ -405,12 +374,11 @@ for model in models:
                 print(f"Recall: {recall:.2f}")
                 print(f"F-measure: {f_measure:.2f}")
 
-                # Confusion Matrix
                 cm = confusion_matrix(y_true, y_pred)
                 print("\nConfusion Matrix:")
                 print(cm)
 
-                metrics_data.append(
+                metrics_data[task].append(
                     {
                         "task": task,
                         "style-prompt": prompt_type,
@@ -419,7 +387,7 @@ for model in models:
                         "value": accuracy,
                     }
                 )
-                metrics_data.append(
+                metrics_data[task].append(
                     {
                         "task": task,
                         "style-prompt": prompt_type,
@@ -428,7 +396,7 @@ for model in models:
                         "value": precision,
                     }
                 )
-                metrics_data.append(
+                metrics_data[task].append(
                     {
                         "task": task,
                         "style-prompt": prompt_type,
@@ -437,7 +405,7 @@ for model in models:
                         "value": recall,
                     }
                 )
-                metrics_data.append(
+                metrics_data[task].append(
                     {
                         "task": task,
                         "style-prompt": prompt_type,
@@ -450,23 +418,19 @@ for model in models:
             elif task == "task3":
                 y_true = []
                 y_pred = []
-                accuracies = []  # List to store individual Accuracy@k values
+                accuracies = [] 
                 k = 3  # Set the value of k
                 for _, row in results.iterrows():
-                    # Parse true exceptions using the proper parser
                     true_exceptions = parse_str_except_identifiers(
                         row["str_except_identifiers"]
                     )
-                    # Parse predicted exceptions
                     predicted_exceptions = parse_task3_response(
                         row["llm_response"]
                     )
 
-                    # Extend the lists for multi-label classification
                     y_true.append(true_exceptions)
                     y_pred.append(predicted_exceptions)
 
-                    # Calculate Accuracy@k for the current response
                     accuracy_at_k = (
                         1
                         if any(
@@ -474,9 +438,8 @@ for model in models:
                         )
                         else 0
                     )
-                    accuracies.append(accuracy_at_k)  # Store the individual accuracy
+                    accuracies.append(accuracy_at_k)  
 
-                # Calculate the mean Accuracy@k
                 mean_accuracy_at_k = (
                     sum(accuracies) / len(accuracies) if accuracies else 0
                 )
@@ -484,12 +447,10 @@ for model in models:
                     f"\nMean Accuracy@{k} for {prompt_type} prompt in task 3: {mean_accuracy_at_k:.2f}"
                 )
 
-                # Multi-label classification metrics
                 mlb = MultiLabelBinarizer()
                 y_true_bin = mlb.fit_transform(y_true)
                 y_pred_bin = mlb.transform(y_pred)
 
-                # Check if there are any classes; if not, set metrics to 0 to avoid errors
                 if len(mlb.classes_) == 0:
                     macro_f1 = 0
                     weighted_f1 = 0
@@ -503,14 +464,12 @@ for model in models:
                     )
                     weighted_accuracy = accuracy_score(y_true_bin, y_pred_bin)
 
-                # Print detailed metrics
                 print(f"\nDetailed Metrics for {prompt_type} prompt in task 3:")
                 print(f"Macro F1-score:   {macro_f1:.2f}")
                 print(f"Weighted F1-score:{weighted_f1:.2f}")
                 print(f"Weighted Accuracy:{weighted_accuracy:.2f}")
 
-                # Save metrics
-                metrics_data.append(
+                metrics_data[task].append(
                     {
                         "task": task,
                         "style-prompt": prompt_type,
@@ -519,7 +478,7 @@ for model in models:
                         "value": mean_accuracy_at_k,
                     }
                 )
-                metrics_data.append(
+                metrics_data[task].append(
                     {
                         "task": task,
                         "style-prompt": prompt_type,
@@ -528,7 +487,7 @@ for model in models:
                         "value": macro_f1,
                     }
                 )
-                metrics_data.append(
+                metrics_data[task].append(
                     {
                         "task": task,
                         "style-prompt": prompt_type,
@@ -537,7 +496,7 @@ for model in models:
                         "value": weighted_f1,
                     }
                 )
-                metrics_data.append(
+                metrics_data[task].append(
                     {
                         "task": task,
                         "style-prompt": prompt_type,
@@ -551,11 +510,9 @@ for model in models:
                 y_true_raw = results["str_captures_except"]
                 y_pred = results["llm_response"].apply(extract_except_block)
 
-                # Parse ground truth (stored as Python list string representation)
                 y_true = []
                 for true_raw in y_true_raw:
                     try:
-                        # Try to parse as Python list
                         if isinstance(true_raw, str) and true_raw.strip().startswith('['):
                             true_list = ast.literal_eval(true_raw)
                             true_code = true_list[0] if isinstance(true_list, list) and len(true_list) > 0 else str(true_list)
@@ -570,26 +527,21 @@ for model in models:
                 codebleu_scores = []
 
                 for true, pred in zip(y_true, y_pred):
-                    if true and pred:  # Only evaluate if both exist
-                        # Calculate BLEU score
+                    if true and pred:  
                         bleu = calculate_bleu_score(true, pred)
                         bleu_scores.append(bleu)
 
-                        # Calculate CodeBLEU score
                         try:
-                            # CodeBLEU expects language parameter ('python' for Python code)
-                            codebleu = calc_codebleu(
-                                [true],  # references should be a list
-                                pred,    # prediction is a single string
+                            codebleu_result = calc_codebleu(
+                                [[true]],   
+                                [pred],    
                                 lang='python'
                             )
+                            codebleu = codebleu_result.get('codebleu', 0.0)
                             codebleu_scores.append(codebleu)
                         except Exception as e:
-                            # If CodeBLEU fails, use BLEU as fallback
-                            logger.debug(f"CodeBLEU calculation failed: {e}")
-                            codebleu_scores.append(bleu)
+                            logger.warning(f"CodeBLEU calculation failed: {e}")
 
-                # Calculate average metrics
                 if bleu_scores:
                     avg_bleu = sum(bleu_scores) / len(bleu_scores)
                 else:
@@ -604,7 +556,7 @@ for model in models:
                 print(f"Average BLEU Score:        {avg_bleu:.4f}")
                 print(f"Average CodeBLEU Score:    {avg_codebleu:.4f}")
 
-                metrics_data.append(
+                metrics_data[task].append(
                     {
                         "task": task,
                         "style-prompt": prompt_type,
@@ -613,7 +565,7 @@ for model in models:
                         "value": avg_bleu,
                     }
                 )
-                metrics_data.append(
+                metrics_data[task].append(
                     {
                         "task": task,
                         "style-prompt": prompt_type,
@@ -623,11 +575,13 @@ for model in models:
                     }
                 )
 
-output_csv_path = f"{os.getcwd()}/llm/output/metrics.csv"
-with open(output_csv_path, mode="w", newline="") as csv_file:
-    fieldnames = ["task", "style-prompt", "model", "metric", "value"]
-    writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
+fieldnames = ["task", "style-prompt", "model", "metric", "value"]
 
-    writer.writeheader()
-    for metric in metrics_data:
-        writer.writerow(metric)
+for task_num, task in enumerate(tasks, 1):
+    output_csv_path = f"{os.getcwd()}/llm/output/metrics_task{task_num}.csv"
+    with open(output_csv_path, mode="w", newline="") as csv_file:
+        writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
+        writer.writeheader()
+        for metric in metrics_data[task]:
+            writer.writerow(metric)
+    print(f"\nMetrics for {task} saved to: {output_csv_path}")

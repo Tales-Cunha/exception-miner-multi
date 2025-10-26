@@ -413,12 +413,6 @@ def prompt_task4_cot(function):
     )
 
 
-"""
-TODO: Task 5 to evaluate if the LLM is able to create a test to exception handling code to test the exceptional behavior.
-However, we need know how to evaluate if the exception test created by the developer is equivalent to the test created by the LLM.
-"""
-
-
 def collect_df(task, project: str = DEFAULT_PROJECT):
     df = pd.read_csv("tmp/balanced_sample.csv")
     df["project"] = project
@@ -429,7 +423,6 @@ def collect_df(task, project: str = DEFAULT_PROJECT):
             n=len(pos_samples), random_state=42
         )
 
-        # concat and shuffle the DataFrame rows
         return (
             pd.concat([pos_samples, neg_samples], ignore_index=True)
             .sample(frac=1)
@@ -437,8 +430,6 @@ def collect_df(task, project: str = DEFAULT_PROJECT):
         )
     else:
         return df[df["n_try_except"] == 1].reset_index(drop=True)
-    # To test:
-    # return pd.concat([pos_samples.sample(n=1), neg_samples.sample(n=1)], ignore_index=True)
 
 
 def call_llama(prompt, model_name):
