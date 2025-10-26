@@ -9,8 +9,8 @@ repos = [
 "you-get"
 ]
 
-repo_stats_dir = "/home/talescunha/Jairo/exception-miner-multi/results/parser/py"
-out_combined = "/home/talescunha/Jairo/exception-miner-multi/tmp/py_stats_combined_2.csv"   # change if you want
+repo_stats_dir = "PATH"
+out_combined = "PATH"   # change if you want
 
 dfs = []
 for repo in repos:
