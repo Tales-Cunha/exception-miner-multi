@@ -1,12 +1,16 @@
 import argparse
-import json
 import logging
 import os
+import sys
 import time
-from typing import List
+from typing import List, Dict
 
 import pandas as pd
-import requests
+from anthropic import Anthropic, RateLimitError as AnthropicRateLimitError
+from openai import OpenAI, RateLimitError as OpenAIRateLimitError
+from google import genai
+from google.genai import errors as GenAIErrors
+from dotenv import load_dotenv
 
 # Configure basic logging - will be updated based on verbose flag
 logger = logging.getLogger(__name__)
@@ -14,6 +18,20 @@ handler = logging.StreamHandler()
 handler.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s"))
 logger.addHandler(handler)
 logger.setLevel(logging.WARNING)  # Default to WARNING, can be changed to INFO with -v
+
+# Initialize Anthropic, OpenAI, and Gemini clients
+load_dotenv()
+_client = Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
+_openai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+_gemini_client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
+
+
+# Custom exception for rate limits
+class RateLimitExceeded(Exception):
+    """Raised when API rate limit is reached"""
+
+    pass
+
 
 # Define constants for code examples to avoid duplication
 EXAMPLE_FLOAT_CONVERSION = (
@@ -26,7 +44,7 @@ EXAMPLE_SIMPLE_FUNCTION = "def get_tokenizer(cls, pretrained_name=None, **kwargs
 EXAMPLE_BACKEND_CALL = "def call(self, x):\n    return backend.nn.silu(x)"
 
 DEFAULT_PROJECT = "combined"
-DEFAULT_MODELS = ["phi4:latest", "codellama:latest", "mistral:7b", "gemma2:9b", "deepseek-r1:8b"]
+DEFAULT_MODELS = ["claude-haiku-4-5", "gpt-4o-mini", "gemini-3-flash-preview"]
 
 
 def prompt_default(function, binary_answers=True):
@@ -432,15 +450,157 @@ def collect_df(task, project: str = DEFAULT_PROJECT):
         return df[df["n_try_except"] == 1].reset_index(drop=True)
 
 
-def call_llama(prompt, model_name):
-    headers = {"Content-Type": "application/json"}
+def _call_claude(prompt: str, model_name: str) -> Dict[str, any]:
+    """
+    Call Claude API and return response text along with token usage.
 
-    data = {"model": model_name, "prompt": prompt, "stream": False}
+    Args:
+        prompt: The prompt to send to Claude
+        model_name: The Claude model to use (e.g., "claude-haiku-4-5")
 
-    response = requests.post(
-        "http://localhost:11434/api/generate", headers=headers, data=json.dumps(data)
-    )
-    return response
+    Returns:
+        Dictionary with keys:
+        - "text": The response text from Claude
+        - "input_tokens": Number of input tokens used
+        - "output_tokens": Number of output tokens used
+
+    Raises:
+        RateLimitExceeded: If API rate limit is reached
+    """
+    try:
+        response = _client.messages.create(
+            model=model_name,
+            max_tokens=10050,
+            temperature=0.7,
+            messages=[{"role": "user", "content": prompt}],
+        )
+    except AnthropicRateLimitError as e:
+        raise RateLimitExceeded(f"Claude API rate limited: {e}") from e
+
+    # Track tokens
+    input_tokens = response.usage.input_tokens
+    output_tokens = response.usage.output_tokens
+
+    return {
+        "text": response.content[0].text,
+        "input_tokens": input_tokens,
+        "output_tokens": output_tokens,
+    }
+
+
+def _call_openai(prompt: str, model_name: str) -> Dict[str, any]:
+    """
+    Call OpenAI API and return response text along with token usage.
+
+    Args:
+        prompt: The prompt to send to OpenAI
+        model_name: The OpenAI model to use (e.g., "gpt-4o-mini")
+
+    Returns:
+        Dictionary with keys:
+        - "text": The response text from OpenAI
+        - "input_tokens": Number of input tokens used
+        - "output_tokens": Number of output tokens used
+
+    Raises:
+        RateLimitExceeded: If API rate limit is reached
+    """
+    try:
+        response = _openai_client.chat.completions.create(
+            model=model_name,
+            max_tokens=10050,
+            temperature=0.7,
+            messages=[{"role": "user", "content": prompt}],
+        )
+    except OpenAIRateLimitError as e:
+        raise RateLimitExceeded(f"OpenAI API rate limited: {e}") from e
+
+    # Track tokens
+    input_tokens = response.usage.prompt_tokens
+    output_tokens = response.usage.completion_tokens
+
+    return {
+        "text": response.choices[0].message.content,
+        "input_tokens": input_tokens,
+        "output_tokens": output_tokens,
+    }
+
+
+def _call_gemini(prompt: str, model_name: str) -> Dict[str, any]:
+    """
+    Call Gemini API and return response text along with token usage.
+
+    Args:
+        prompt: The prompt to send to Gemini
+        model_name: The Gemini model to use (e.g., "gemini-2.0-flash" or "models/gemini-2.0-flash")
+
+    Returns:
+        Dictionary with keys:
+        - "text": The response text from Gemini
+        - "input_tokens": Number of input tokens used
+        - "output_tokens": Number of output tokens used
+
+    Raises:
+        RateLimitExceeded: If API rate limit is reached
+    """
+    from google.genai import types as GenAITypes
+
+    # Auto-add models/ prefix if not present
+    if not model_name.startswith("models/"):
+        model_name = f"models/{model_name}"
+
+    try:
+        response = _gemini_client.models.generate_content(
+            model=model_name,
+            contents=prompt,
+            config=GenAITypes.GenerateContentConfig(
+                temperature=0.7,
+            ),
+        )
+    except GenAIErrors.APIError as e:
+        if e.code == 429:
+            raise RateLimitExceeded(f"Gemini API rate limited: {e}") from e
+        raise
+
+    # Track tokens
+    input_tokens = response.usage_metadata.prompt_token_count or 0
+    output_tokens = response.usage_metadata.candidates_token_count or 0
+
+    # Handle cases where response.text is None (blocked content, etc.)
+    text = response.text if response.text is not None else ""
+
+    return {
+        "text": text,
+        "input_tokens": input_tokens,
+        "output_tokens": output_tokens,
+    }
+
+
+def call_llm(prompt: str, model_name: str) -> Dict[str, any]:
+    """
+    Unified LLM interface that routes to the appropriate backend.
+
+    Args:
+        prompt: The prompt to send to the LLM
+        model_name: The model to use (e.g., "claude-haiku-4-5" or "gpt-4o-mini")
+
+    Returns:
+        Dictionary with keys:
+        - "text": The response text
+        - "input_tokens": Number of input tokens used
+        - "output_tokens": Number of output tokens used
+
+    Raises:
+        ValueError: If the model name is not recognized
+    """
+    if "claude" in model_name.lower():
+        return _call_claude(prompt, model_name)
+    elif "gpt" in model_name.lower():
+        return _call_openai(prompt, model_name)
+    elif "gemini" in model_name.lower():
+        return _call_gemini(prompt, model_name)
+    else:
+        raise ValueError(f"Unknown model: {model_name}")
 
 
 # Define prompt functions for tasks
@@ -496,6 +656,11 @@ def parse_args():
         help="Subset of tasks to run (default: all tasks).",
     )
     parser.add_argument(
+        "--task",
+        choices=list(TASKS.keys()),
+        help="Run only this single task (overrides --tasks).",
+    )
+    parser.add_argument(
         "--prompt-types",
         nargs="+",
         choices=sorted({prompt for prompts in TASKS.values() for prompt in prompts}),
@@ -504,7 +669,7 @@ def parse_args():
     parser.add_argument(
         "--models",
         nargs="+",
-        help="One or more Ollama model names (default: phi4:latest deepseek-r1:latest).",
+        help="One or more Claude model names (default: claude-haiku-4-5).",
     )
     parser.add_argument(
         "--limit",
@@ -522,6 +687,15 @@ def parse_args():
         action="store_true",
         help="Enable verbose logging (shows response status, JSON, and generation time).",
     )
+    parser.add_argument(
+        "--start-task",
+        choices=list(TASKS.keys()),
+        help="Start from this task and rotate through remaining tasks (default: task1).",
+    )
+    parser.add_argument(
+        "--start-prompt",
+        help="Start from this prompt style within the start-task (e.g., 'style-1-shot'). Only used with --start-task.",
+    )
     return parser.parse_args()
 
 
@@ -533,85 +707,193 @@ def main():
         logger.setLevel(logging.INFO)
 
     models_to_run: List[str] = args.models or DEFAULT_MODELS
-    tasks_to_run = args.tasks or list(TASKS.keys())
+
+    # Handle --task (single task) which overrides --tasks
+    if args.task:
+        tasks_to_run = [args.task]
+    else:
+        tasks_to_run = args.tasks or list(TASKS.keys())
+
     prompt_types_filter = set(args.prompt_types) if args.prompt_types else None
+
+    # Handle task rotation starting from start_task
+    if args.start_task:
+        # Rotate tasks to start from the specified task
+        all_tasks = list(TASKS.keys())
+        if args.start_task in all_tasks:
+            start_idx = all_tasks.index(args.start_task)
+            # Rotate the list so start_task is first
+            tasks_to_run = all_tasks[start_idx:] + all_tasks[:start_idx]
+        else:
+            logger.warning(f"Task {args.start_task} not found, using default order")
+
+    # Determine starting prompt type for the starting task
+    start_prompt = None
+    if args.start_task and args.start_prompt:
+        # Validate that the prompt exists in the start task
+        if args.start_prompt in TASKS[args.start_task]:
+            start_prompt = args.start_prompt
+        else:
+            logger.warning(
+                f"Prompt {args.start_prompt} not found in {args.start_task}, starting from first prompt"
+            )
 
     df_result = pd.DataFrame()
 
-    for model in models_to_run:
-        model_label = sanitize_for_filename(
-            model.split("/")[-1] if "/" in model else model
-        )
-        print(f"Processing with model: {model}")
+    try:
+        for model in models_to_run:
+            model_label = sanitize_for_filename(
+                model.split("/")[-1] if "/" in model else model
+            )
+            print(f"Processing with model: {model}")
+            df_model = pd.DataFrame()
 
-        for task in tasks_to_run:
-            print(f"Processing {task}...")
-            prompt_functions = TASKS[task]
+            for task in tasks_to_run:
+                print(f"Processing {task}...")
+                prompt_functions = TASKS[task]
 
-            for prompt_type, prompt_func in prompt_functions.items():
-                if prompt_types_filter and prompt_type not in prompt_types_filter:
-                    continue
+                # If this is the start task and we have a start_prompt, rotate prompts
+                prompts_to_run = list(prompt_functions.items())
+                if task == args.start_task and start_prompt:
+                    # Find the start_prompt index and rotate
+                    prompt_keys = list(prompt_functions.keys())
+                    if start_prompt in prompt_keys:
+                        start_idx = prompt_keys.index(start_prompt)
+                        rotated_keys = prompt_keys[start_idx:] + prompt_keys[:start_idx]
+                        prompts_to_run = [
+                            (k, prompt_functions[k]) for k in rotated_keys
+                        ]
 
-                output = []
-                df = collect_df(task, project=args.project)
-                if args.limit is not None:
-                    df = df.head(args.limit)
+                for prompt_type, prompt_func in prompts_to_run:
+                    if prompt_types_filter and prompt_type not in prompt_types_filter:
+                        continue
 
-                for index, row in df.iterrows():
-                    call_count = int(index) + 1
-                    print(
-                        f"Calling {call_count} of {len(df)} rows for {prompt_type} prompt of {task}"
+                    output = []
+                    input_tokens_list = []
+                    output_tokens_list = []
+                    df = collect_df(task, project=args.project)
+                    if args.limit is not None:
+                        df = df.head(args.limit)
+
+                    for index, row in df.iterrows():
+                        call_count = int(index) + 1
+                        print(
+                            f"Calling {call_count} of {len(df)} rows for {prompt_type} prompt of {task}"
+                        )
+                        if row["n_try_except"] == 1:
+                            prompt = prompt_func(row["str_code_without_try_except"])
+                        else:
+                            prompt = prompt_func(row["func_body"])
+
+                        start = time.time()
+                        try:
+                            response = call_llm(prompt=prompt, model_name=model)
+                        except RateLimitExceeded as exc:
+                            # Rate limit reached - save progress and exit gracefully
+                            logger.error(f"Rate limit exceeded: {exc}")
+                            logger.info("Saving results collected so far...")
+
+                            # Save the current batch
+                            df_style = df.copy()
+                            df_style["task"] = task
+                            df_style["prompt_type"] = prompt_type
+                            df_style["llm_response"] = output
+                            df_style["input_tokens"] = input_tokens_list
+                            df_style["output_tokens"] = output_tokens_list
+                            df_model = pd.concat(
+                                [df_model, df_style], ignore_index=True
+                            )
+                            df_result = pd.concat(
+                                [df_result, df_style], ignore_index=True
+                            )
+                            save_results_to_csv(
+                                df_style, task, prompt_type, args.project, model_label
+                            )
+
+                            # Save per-model aggregate
+                            if not df_model.empty:
+                                model_output_file = os.path.join(
+                                    os.getcwd(),
+                                    "llm",
+                                    "output",
+                                    f"{args.project}_{model_label}_results_all.csv",
+                                )
+                                df_model.to_csv(model_output_file, index=False)
+                                logger.info(
+                                    f"Model results saved to {model_output_file}"
+                                )
+
+                            total_processed = len(df_result)
+                            logger.error(
+                                f"Execution stopped. Processed {total_processed} samples before rate limit."
+                            )
+                            sys.exit(1)
+                        except Exception as exc:
+                            logger.error(f"Error from LLM API: {exc}")
+                            output.append("")
+                            input_tokens_list.append(0)
+                            output_tokens_list.append(0)
+                            continue
+
+                        response_text = response["text"]
+                        input_tokens = response["input_tokens"]
+                        output_tokens = response["output_tokens"]
+                        elapsed_time = time.time() - start
+
+                        logger.info(f"Generated in {elapsed_time:.2f} seconds")
+                        logger.info(
+                            f"Input tokens: {input_tokens}, Output tokens: {output_tokens}"
+                        )
+                        logger.info(f"Response: {response_text}")
+
+                        output.append(response_text)
+                        input_tokens_list.append(input_tokens)
+                        output_tokens_list.append(output_tokens)
+
+                    df_style = df.copy()
+                    df_style["task"] = task
+                    df_style["prompt_type"] = prompt_type
+                    df_style["llm_response"] = output
+                    df_style["input_tokens"] = input_tokens_list
+                    df_style["output_tokens"] = output_tokens_list
+
+                    df_model = pd.concat([df_model, df_style], ignore_index=True)
+                    df_result = pd.concat([df_result, df_style], ignore_index=True)
+                    save_results_to_csv(
+                        df_style, task, prompt_type, args.project, model_label
                     )
-                    if row["n_try_except"] == 1:
-                        prompt = prompt_func(row["str_code_without_try_except"])
-                    else:
-                        prompt = prompt_func(row["func_body"])
 
-                    start = time.time()
-                    try:
-                        response = call_llama(prompt=prompt, model_name=model)
-                        response.raise_for_status()
-                        response_json = response.json()
-                    except requests.RequestException as exc:
-                        logger.error(f"HTTP error from Ollama: {exc}")
-                        output.append("")
-                        continue
-                    except json.JSONDecodeError as exc:
-                        logger.error(f"Invalid JSON in Ollama response: {exc}")
-                        output.append("")
-                        continue
-
-                    logger.info(f"Response status: {response.status_code}")
-                    logger.info(f"Response JSON: {response_json}")
-
-                    if "response" in response_json:
-                        logger.info(f"Generated in {(time.time() - start):.2f} seconds")
-                        logger.info("Response...." + response_json["response"])
-                        output.append(response_json["response"])
-                    else:
-                        logger.error(f"Error in response: {response_json}")
-                        output.append("")
-
-                df_style = df.copy()
-                df_style["task"] = task
-                df_style["prompt_type"] = prompt_type
-                df_style["llm_response"] = output
-
-                df_result = pd.concat([df_result, df_style], ignore_index=True)
-                save_results_to_csv(
-                    df_style, task, prompt_type, args.project, model_label
+            # Save per-model aggregate after model completes
+            if not df_model.empty:
+                model_output_file = os.path.join(
+                    os.getcwd(),
+                    "llm",
+                    "output",
+                    f"{args.project}_{model_label}_results_all.csv",
                 )
+                df_model.to_csv(model_output_file, index=False)
+                logger.info(f"Model results saved to {model_output_file}")
 
-    if not df_result.empty:
-        aggregate_label = sanitize_for_filename("-".join(models_to_run))
-        final_output_file = os.path.join(
-            os.getcwd(),
-            "llm",
-            "output",
-            f"{args.project}_{aggregate_label}_results_all.csv",
+        # Completed successfully - save combined results for all models
+        if not df_result.empty:
+            aggregate_label = sanitize_for_filename("-".join(models_to_run))
+            final_output_file = os.path.join(
+                os.getcwd(),
+                "llm",
+                "output",
+                f"{args.project}_{aggregate_label}_results_all.csv",
+            )
+            df_result.to_csv(final_output_file, index=False)
+            logger.info(f"Combined results saved to {final_output_file}")
+
+        total_processed = len(df_result)
+        logger.info(
+            f"✓ Execution completed successfully. Processed {total_processed} samples."
         )
-        df_result.to_csv(final_output_file, index=False)
-        logger.info(f"Combined results saved to {final_output_file}")
+
+    except KeyboardInterrupt:
+        logger.warning("Execution interrupted by user")
+        sys.exit(0)
 
 
 if __name__ == "__main__":
