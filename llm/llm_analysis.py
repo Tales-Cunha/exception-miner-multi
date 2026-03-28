@@ -15,60 +15,28 @@ from sklearn.metrics import (
     recall_score,
 )
 from sklearn.preprocessing import MultiLabelBinarizer
-from nltk.translate.bleu_score import sentence_bleu, SmoothingFunction
-from codebleu import calc_codebleu
+from nltk.translate.bleu_score import sentence_bleu
+import os  
+import csv 
 
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
-)
-logger = logging.getLogger(__name__)
+# Load the dataset
+output_dir = "/home/r4ph/desenv/exception-miner-multi/llm/output"  # Specify the output directory
+# Only load per-task files (skip _results_all.csv and metrics.csv)
+all_files = [
+    f for f in os.listdir(output_dir)
+    if f.endswith('.csv') and f != 'metrics.csv' and '_results_all' not in f
+]
 
-
-def extract_model_from_filename(filename):
-    """
-    Extract model name from filename pattern:
-    - combined_{model}_results_all.csv
-    - combined_{model}_task{N}_style-{style}_results.csv
-    Example: combined_phi4:latest_task1_style-few-shot_results.csv -> phi4:latest
-    Example: combined_codellama-latest_results_all.csv -> codellama-latest
-    """
-    match = re.match(r"combined_(.+?)_results_all\.csv", filename)
+# Read and concatenate all CSV files, extracting model name from filename
+df_list = []
+for file in all_files:
+    tmp = pd.read_csv(os.path.join(output_dir, file))
+    # Extract model name: combined_{model}_task{n}_... -> group before '_task'
+    match = re.match(r'combined_(.+)_task\d+', file)
     if match:
-        return match.group(1)
-
-    # Try pattern for individual task files
-    match = re.match(r"combined_(.+?)_task\d+", filename)
-    if match:
-        return match.group(1)
-    return None
-
-
-def load_dataframe_with_model():
-    """
-    Load all CSV files from output directory and add model column based on filename.
-    Returns a pandas DataFrame with an additional 'model' column.
-    """
-    output_dir = "llm/output"
-    all_files = [
-        f
-        for f in os.listdir(output_dir)
-        if f.endswith(".csv") and f.startswith("combined_")
-    ]
-    logger.info(f"Collecting results from...: {all_files}")
-
-    df_list = []
-    for file in all_files:
-        model_name = extract_model_from_filename(file)
-        if model_name:
-            df_temp = pd.read_csv(os.path.join(output_dir, file))
-            df_temp["model"] = model_name
-            df_list.append(df_temp)
-
-    if df_list:
-        return pd.concat(df_list, ignore_index=True)
-    else:
-        return pd.DataFrame()
-
+        tmp['model'] = match.group(1)
+    df_list.append(tmp)
+df = pd.concat(df_list, ignore_index=True)  # Concatenate all DataFrames
 
 def extract_statements(code):
     """
@@ -123,9 +91,11 @@ def parse_task_response2(response):
 
 
 def parse_task3_response(response):
-    # Handle NaN or non-string values
-    if not isinstance(response, str) or pd.isnull(response):
+    if not isinstance(response, str):
         return []
+    # Check if the response has more than 20 lines
+    if response.count('\n') > 20:
+        return ''  # Return an empty string if there are more than 20 lines
 
     # Split the response by commas and strip whitespace
     exceptions = [exc.strip() for exc in response.split(",")]
@@ -267,94 +237,52 @@ def calculate_bleu_score(reference, hypothesis, weights=(0.25, 0.25, 0.25, 0.25)
 def code_similarity(code1, code2):
     return SequenceMatcher(None, code1, code2).ratio()
 
+tasks = ['task1', 'task2', 'task3', 'task4']
+metrics_data = []
 
-# Load the dataset with model information
-df = load_dataframe_with_model()
+for task in tasks:
+    print(f"\nEvaluating {task}:")
 
-tasks = ["task1", "task2", "task3", "task4"]
-models = df["model"].unique().tolist() if "model" in df.columns and not df.empty else []
-metrics_data = {task: [] for task in tasks}
+    df_task = df[df['task'] == task]
 
-print(f"Found {len(models)} models: {models}")
-print(f"Found {len(df)} total rows")
+    for model_name in df_task['model'].unique():
+        df_model = df_task[df_task['model'] == model_name]
 
-for model in models:
-    for task in tasks:
-        print(f"\nEvaluating {model} - {task}:")
+        for prompt_type in df_model['prompt_type'].unique():
+            results = df_model[df_model['prompt_type'] == prompt_type]
 
-        df_task = df[(df["task"] == task) & (df["model"] == model)]
+            if task == 'task1':
+                y_true = results['n_try_except']
+                y_pred = results['llm_response'].apply(lambda x: 1 if 'yes' in x.lower() else 0)
 
-        for prompt_type in df_task["prompt_type"].unique():
-            results = df_task[df_task["prompt_type"] == prompt_type]
-
-            if task == "task1":
-                y_true = results["n_try_except"]
-                y_pred = results["llm_response"].apply(
-                    lambda x: 1 if (isinstance(x, str) and "yes" in x.lower()) else 0
-                )
-
+                # Calculate metrics
                 accuracy = accuracy_score(y_true, y_pred)
                 precision = precision_score(y_true, y_pred)
                 recall = recall_score(y_true, y_pred)
                 f_measure = f1_score(y_true, y_pred)
 
-                print(f"\nMetrics for {prompt_type} prompt in task1:")
+                print(f"\nMetrics for {model_name} / {prompt_type} prompt in task1:")
                 print(f"Accuracy: {accuracy:.2f}")
                 print(f"Precision: {precision:.2f}")
                 print(f"Recall: {recall:.2f}")
                 print(f"F-measure: {f_measure:.2f}")
 
+                # Confusion Matrix
                 cm = confusion_matrix(y_true, y_pred)
                 print("\nConfusion Matrix:")
                 print(cm)
 
-                metrics_data[task].append(
-                    {
-                        "task": task,
-                        "style-prompt": prompt_type,
-                        "model": model,
-                        "metric": "Accuracy",
-                        "value": accuracy,
-                    }
-                )
-                metrics_data[task].append(
-                    {
-                        "task": task,
-                        "style-prompt": prompt_type,
-                        "model": model,
-                        "metric": "Precision",
-                        "value": precision,
-                    }
-                )
-                metrics_data[task].append(
-                    {
-                        "task": task,
-                        "style-prompt": prompt_type,
-                        "model": model,
-                        "metric": "Recall",
-                        "value": recall,
-                    }
-                )
-                metrics_data[task].append(
-                    {
-                        "task": task,
-                        "style-prompt": prompt_type,
-                        "model": model,
-                        "metric": "F-measure",
-                        "value": f_measure,
-                    }
-                )
+                metrics_data.append({'task': task, 'style-prompt': prompt_type, 'model': model_name, 'metric': 'Accuracy', 'value': accuracy})
+                metrics_data.append({'task': task, 'style-prompt': prompt_type, 'model': model_name, 'metric': 'Precision', 'value': precision})
+                metrics_data.append({'task': task, 'style-prompt': prompt_type, 'model': model_name, 'metric': 'Recall', 'value': recall})
+                metrics_data.append({'task': task, 'style-prompt': prompt_type, 'model': model_name, 'metric': 'F-measure', 'value': f_measure})
 
-            elif task == "task2":  
+            elif task == 'task2':
                 y_true = []
                 y_pred = []
                 for _, row in results.iterrows():
-                    code1 = row["func_body"]
-                    code2 = row["llm_response"]
-                    original_vector = create_try_vector(row["func_body"])
-                    llm_vector = create_try_vector(
-                        parse_task_response2(row["llm_response"])
-                    )
+                    original_vector = create_try_vector(row['func_body'])
+                    llm_vector = create_try_vector(parse_task_response2(row['llm_response']))
 
                     max_len = max(len(original_vector), len(llm_vector))
                     original_vector += [0] * (max_len - len(original_vector))
@@ -363,89 +291,55 @@ for model in models:
                     y_true.extend(original_vector)
                     y_pred.extend(llm_vector)
 
+                # Calculate metrics
                 accuracy = accuracy_score(y_true, y_pred)
                 precision = precision_score(y_true, y_pred)
                 recall = recall_score(y_true, y_pred)
                 f_measure = f1_score(y_true, y_pred)
 
-                print(f"\nMetrics for {prompt_type} prompt in task2:")
+                print(f"\nMetrics for {model_name} / {prompt_type} prompt in task2:")
                 print(f"Accuracy: {accuracy:.2f}")
                 print(f"Precision: {precision:.2f}")
                 print(f"Recall: {recall:.2f}")
                 print(f"F-measure: {f_measure:.2f}")
 
+                # Confusion Matrix
                 cm = confusion_matrix(y_true, y_pred)
                 print("\nConfusion Matrix:")
                 print(cm)
 
-                metrics_data[task].append(
-                    {
-                        "task": task,
-                        "style-prompt": prompt_type,
-                        "model": model,
-                        "metric": "Accuracy",
-                        "value": accuracy,
-                    }
-                )
-                metrics_data[task].append(
-                    {
-                        "task": task,
-                        "style-prompt": prompt_type,
-                        "model": model,
-                        "metric": "Precision",
-                        "value": precision,
-                    }
-                )
-                metrics_data[task].append(
-                    {
-                        "task": task,
-                        "style-prompt": prompt_type,
-                        "model": model,
-                        "metric": "Recall",
-                        "value": recall,
-                    }
-                )
-                metrics_data[task].append(
-                    {
-                        "task": task,
-                        "style-prompt": prompt_type,
-                        "model": model,
-                        "metric": "F-measure",
-                        "value": f_measure,
-                    }
-                )
+                metrics_data.append({'task': task, 'style-prompt': prompt_type, 'model': model_name, 'metric': 'Accuracy', 'value': accuracy})
+                metrics_data.append({'task': task, 'style-prompt': prompt_type, 'model': model_name, 'metric': 'Precision', 'value': precision})
+                metrics_data.append({'task': task, 'style-prompt': prompt_type, 'model': model_name, 'metric': 'Recall', 'value': recall})
+                metrics_data.append({'task': task, 'style-prompt': prompt_type, 'model': model_name, 'metric': 'F-measure', 'value': f_measure})
 
-            elif task == "task3":
+            elif task == 'task3':
                 y_true = []
                 y_pred = []
-                accuracies = [] 
+                accuracies = []  # List to store individual Accuracy@k values
                 k = 3  # Set the value of k
                 for _, row in results.iterrows():
-                    true_exceptions = parse_str_except_identifiers(
-                        row["str_except_identifiers"]
-                    )
-                    predicted_exceptions = parse_task3_response(
-                        row["llm_response"]
-                    )
+                    true_exceptions = row['str_except_identifiers']
+                    predicted_exceptions = parse_task3_response(row['llm_response'])
+
+                    if pd.isnull(true_exceptions):
+                        true_exceptions = []
+                    elif not isinstance(true_exceptions, list):
+                        true_exceptions = [true_exceptions]
+
+                    if predicted_exceptions is None or (isinstance(predicted_exceptions, float) and pd.isnull(predicted_exceptions)):
+                        predicted_exceptions = []
+                    elif not isinstance(predicted_exceptions, list):
+                        predicted_exceptions = [predicted_exceptions]
 
                     y_true.append(true_exceptions)
                     y_pred.append(predicted_exceptions)
 
-                    accuracy_at_k = (
-                        1
-                        if any(
-                            item in true_exceptions for item in predicted_exceptions[:k]
-                        )
-                        else 0
-                    )
-                    accuracies.append(accuracy_at_k)  
+                    accuracy_at_k = 1 if any(item in true_exceptions for item in predicted_exceptions[:k]) else 0
+                    accuracies.append(accuracy_at_k)
 
-                mean_accuracy_at_k = (
-                    sum(accuracies) / len(accuracies) if accuracies else 0
-                )
-                print(
-                    f"\nMean Accuracy@{k} for {prompt_type} prompt in task 3: {mean_accuracy_at_k:.2f}"
-                )
+                mean_accuracy_at_k = sum(accuracies) / len(accuracies) if accuracies else 0
+                print(f"\nMean Accuracy@{k} for {model_name} / {prompt_type} prompt in task 3: {mean_accuracy_at_k:.2f}")
 
                 mlb = MultiLabelBinarizer()
                 y_true_bin = mlb.fit_transform(y_true)
@@ -456,132 +350,67 @@ for model in models:
                     weighted_f1 = 0
                     weighted_accuracy = 0
                 else:
-                    macro_f1 = f1_score(
-                        y_true_bin, y_pred_bin, average="macro", zero_division=0
-                    )
-                    weighted_f1 = f1_score(
-                        y_true_bin, y_pred_bin, average="weighted", zero_division=0
-                    )
+                    macro_f1 = f1_score(y_true_bin, y_pred_bin, average='macro', zero_division=0)
+                    weighted_f1 = f1_score(y_true_bin, y_pred_bin, average='weighted', zero_division=0)
                     weighted_accuracy = accuracy_score(y_true_bin, y_pred_bin)
 
-                print(f"\nDetailed Metrics for {prompt_type} prompt in task 3:")
+                print(f"\nDetailed Metrics for {model_name} / {prompt_type} prompt in task 3:")
                 print(f"Macro F1-score:   {macro_f1:.2f}")
                 print(f"Weighted F1-score:{weighted_f1:.2f}")
                 print(f"Weighted Accuracy:{weighted_accuracy:.2f}")
 
-                metrics_data[task].append(
-                    {
-                        "task": task,
-                        "style-prompt": prompt_type,
-                        "model": model,
-                        "metric": "Mean Accuracy@k",
-                        "value": mean_accuracy_at_k,
-                    }
-                )
-                metrics_data[task].append(
-                    {
-                        "task": task,
-                        "style-prompt": prompt_type,
-                        "model": model,
-                        "metric": "Macro F1-score",
-                        "value": macro_f1,
-                    }
-                )
-                metrics_data[task].append(
-                    {
-                        "task": task,
-                        "style-prompt": prompt_type,
-                        "model": model,
-                        "metric": "Weighted F1-score",
-                        "value": weighted_f1,
-                    }
-                )
-                metrics_data[task].append(
-                    {
-                        "task": task,
-                        "style-prompt": prompt_type,
-                        "model": model,
-                        "metric": "Weighted Accuracy",
-                        "value": weighted_accuracy,
-                    }
-                )
+                metrics_data.append({'task': task, 'style-prompt': prompt_type, 'model': model_name, 'metric': 'Mean Accuracy@k', 'value': mean_accuracy_at_k})
+                metrics_data.append({'task': task, 'style-prompt': prompt_type, 'model': model_name, 'metric': 'Macro F1-score', 'value': macro_f1})
+                metrics_data.append({'task': task, 'style-prompt': prompt_type, 'model': model_name, 'metric': 'Weighted F1-score', 'value': weighted_f1})
+                metrics_data.append({'task': task, 'style-prompt': prompt_type, 'model': model_name, 'metric': 'Weighted Accuracy', 'value': weighted_accuracy})
 
-            elif task == "task4":
-                y_true_raw = results["str_captures_except"]
-                y_pred = results["llm_response"].apply(extract_except_block)
+            elif task == 'task4':
+                y_true = results['str_captures_except']
+                y_pred = results['llm_response'].apply(extract_except_block)
 
-                y_true = []
-                for true_raw in y_true_raw:
-                    try:
-                        if isinstance(true_raw, str) and true_raw.strip().startswith('['):
-                            true_list = ast.literal_eval(true_raw)
-                            true_code = true_list[0] if isinstance(true_list, list) and len(true_list) > 0 else str(true_list)
-                        else:
-                            true_code = true_raw
-                        y_true.append(true_code)
-                    except:
-                        y_true.append(true_raw)
-
-                # Calculate BLEU and CodeBLEU scores
                 bleu_scores = []
-                codebleu_scores = []
+                exact_matches = []
+                jaccard_scores = []
+
+                from nltk.translate.bleu_score import sentence_bleu, SmoothingFunction
+                smooth_fn = SmoothingFunction().method1
 
                 for true, pred in zip(y_true, y_pred):
-                    if true and pred:  
-                        bleu = calculate_bleu_score(true, pred)
-                        bleu_scores.append(bleu)
+                    true_tokens = true.split()
+                    pred_tokens = pred.split()
 
-                        try:
-                            codebleu_result = calc_codebleu(
-                                [[true]],   
-                                [pred],    
-                                lang='python'
-                            )
-                            codebleu = codebleu_result.get('codebleu', 0.0)
-                            codebleu_scores.append(codebleu)
-                        except Exception as e:
-                            logger.warning(f"CodeBLEU calculation failed: {e}")
+                    bleu_score = sentence_bleu([true_tokens], pred_tokens, smoothing_function=smooth_fn)
+                    bleu_scores.append(bleu_score)
 
-                if bleu_scores:
-                    avg_bleu = sum(bleu_scores) / len(bleu_scores)
-                else:
-                    avg_bleu = 0.0
+                    exact_match = 1 if true == pred else 0
+                    exact_matches.append(exact_match)
 
-                if codebleu_scores:
-                    avg_codebleu = sum(codebleu_scores) / len(codebleu_scores)
-                else:
-                    avg_codebleu = 0.0
+                    set_true = set(true_tokens)
+                    set_pred = set(pred_tokens)
+                    union = set_true.union(set_pred)
+                    intersection = set_true.intersection(set_pred)
+                    jaccard = len(intersection) / len(union) if union else 0
+                    jaccard_scores.append(jaccard)
 
-                print(f"\nMetrics for {prompt_type} prompt in task 4:")
-                print(f"Average BLEU Score:        {avg_bleu:.4f}")
-                print(f"Average CodeBLEU Score:    {avg_codebleu:.4f}")
+                average_bleu = sum(bleu_scores) / len(bleu_scores) if bleu_scores else 0
+                exact_match_rate = sum(exact_matches) / len(exact_matches) if exact_matches else 0
+                average_jaccard = sum(jaccard_scores) / len(jaccard_scores) if jaccard_scores else 0
 
-                metrics_data[task].append(
-                    {
-                        "task": task,
-                        "style-prompt": prompt_type,
-                        "model": model,
-                        "metric": "BLEU",
-                        "value": avg_bleu,
-                    }
-                )
-                metrics_data[task].append(
-                    {
-                        "task": task,
-                        "style-prompt": prompt_type,
-                        "model": model,
-                        "metric": "CodeBLEU",
-                        "value": avg_codebleu,
-                    }
-                )
+                print(f"\nMetrics for {model_name} / {prompt_type} prompt in task 4:")
+                print(f"Average BLEU Score:         {average_bleu:.2f}")
+                print(f"Exact Match Rate:           {exact_match_rate:.2f}")
+                print(f"Average Jaccard Similarity: {average_jaccard:.2f}")
 
-fieldnames = ["task", "style-prompt", "model", "metric", "value"]
+                metrics_data.append({'task': task, 'style-prompt': prompt_type, 'model': model_name, 'metric': 'Average BLEU Score', 'value': average_bleu})
+                metrics_data.append({'task': task, 'style-prompt': prompt_type, 'model': model_name, 'metric': 'Exact Match Rate', 'value': exact_match_rate})
+                metrics_data.append({'task': task, 'style-prompt': prompt_type, 'model': model_name, 'metric': 'Average Jaccard Similarity', 'value': average_jaccard})
 
-for task_num, task in enumerate(tasks, 1):
-    output_csv_path = f"{os.getcwd()}/llm/output/metrics_task{task_num}.csv"
-    with open(output_csv_path, mode="w", newline="") as csv_file:
-        writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
-        writer.writeheader()
-        for metric in metrics_data[task]:
-            writer.writerow(metric)
-    print(f"\nMetrics for {task} saved to: {output_csv_path}")
+output_csv_path = f"{os.getcwd()}/llm/output/metrics.csv"
+with open(output_csv_path, mode='w', newline='') as csv_file:
+    fieldnames = ['task', 'style-prompt', 'model', 'metric', 'value']
+    writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
+
+    writer.writeheader()
+    for metric in metrics_data:
+        writer.writerow(metric)  
+
