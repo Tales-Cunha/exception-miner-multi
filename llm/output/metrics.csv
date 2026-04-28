@@ -1,36 +1,8 @@
 task,style-prompt,model,metric,value
-task1,style-default,claude-haiku-4-5,Accuracy,0.6807387862796834
-task1,style-default,claude-haiku-4-5,Precision,0.6234234234234234
-task1,style-default,claude-haiku-4-5,Recall,0.9129287598944591
-task1,style-default,claude-haiku-4-5,F-measure,0.7408993576017131
-task1,style-cot,claude-haiku-4-5,Accuracy,0.658311345646438
-task1,style-cot,claude-haiku-4-5,Precision,0.5952380952380952
-task1,style-cot,claude-haiku-4-5,Recall,0.9894459102902374
-task1,style-cot,claude-haiku-4-5,F-measure,0.7433102081268583
-task1,style-few-shot,claude-haiku-4-5,Accuracy,0.6675461741424802
-task1,style-few-shot,claude-haiku-4-5,Precision,0.6108202443280978
-task1,style-few-shot,claude-haiku-4-5,Recall,0.9234828496042217
-task1,style-few-shot,claude-haiku-4-5,F-measure,0.7352941176470589
-task1,style-1-shot,claude-haiku-4-5,Accuracy,0.6715039577836411
-task1,style-1-shot,claude-haiku-4-5,Precision,0.6090604026845637
-task1,style-1-shot,claude-haiku-4-5,Recall,0.9577836411609498
-task1,style-1-shot,claude-haiku-4-5,F-measure,0.7446153846153846
-task1,style-default,gpt-4o-mini,Accuracy,0.6701846965699209
-task1,style-default,gpt-4o-mini,Precision,0.6166365280289331
-task1,style-default,gpt-4o-mini,Recall,0.899736147757256
-task1,style-default,gpt-4o-mini,F-measure,0.7317596566523605
-task1,style-few-shot,gpt-4o-mini,Accuracy,0.7084432717678101
-task1,style-few-shot,gpt-4o-mini,Precision,0.654296875
-task1,style-few-shot,gpt-4o-mini,Recall,0.8839050131926122
-task1,style-few-shot,gpt-4o-mini,F-measure,0.7519640852974186
-task1,style-1-shot,gpt-4o-mini,Accuracy,0.6899736147757256
-task1,style-1-shot,gpt-4o-mini,Precision,0.6323529411764706
-task1,style-1-shot,gpt-4o-mini,Recall,0.9076517150395779
-task1,style-1-shot,gpt-4o-mini,F-measure,0.7453954496208017
-task1,style-cot,gpt-4o-mini,Accuracy,0.5672823218997362
-task1,style-cot,gpt-4o-mini,Precision,0.5362731152204836
-task1,style-cot,gpt-4o-mini,Recall,0.9947229551451188
-task1,style-cot,gpt-4o-mini,F-measure,0.6968576709796673
+task1,style-few-shot,gemini-3-1-flash-lite-preview,Accuracy,0.6728232189973615
+task1,style-few-shot,gemini-3-1-flash-lite-preview,Precision,0.6135181975736569
+task1,style-few-shot,gemini-3-1-flash-lite-preview,Recall,0.9340369393139841
+task1,style-few-shot,gemini-3-1-flash-lite-preview,F-measure,0.7405857740585774
 task1,style-default,gemini-3-1-flash-lite-preview,Accuracy,0.6490765171503958
 task1,style-default,gemini-3-1-flash-lite-preview,Precision,0.6092843326885881
 task1,style-default,gemini-3-1-flash-lite-preview,Recall,0.8311345646437994
@@ -43,139 +15,167 @@ task1,style-cot,gemini-3-1-flash-lite-preview,Accuracy,0.5620052770448549
 task1,style-cot,gemini-3-1-flash-lite-preview,Precision,0.5434380776340111
 task1,style-cot,gemini-3-1-flash-lite-preview,Recall,0.7757255936675461
 task1,style-cot,gemini-3-1-flash-lite-preview,F-measure,0.6391304347826087
-task1,style-few-shot,gemini-3-1-flash-lite-preview,Accuracy,0.6728232189973615
-task1,style-few-shot,gemini-3-1-flash-lite-preview,Precision,0.6135181975736569
-task1,style-few-shot,gemini-3-1-flash-lite-preview,Recall,0.9340369393139841
-task1,style-few-shot,gemini-3-1-flash-lite-preview,F-measure,0.7405857740585774
-task2,style-1-shot,claude-haiku-4-5,Accuracy,0.8320773674956041
-task2,style-1-shot,claude-haiku-4-5,Precision,0.0
-task2,style-1-shot,claude-haiku-4-5,Recall,0.0
-task2,style-1-shot,claude-haiku-4-5,F-measure,0.0
-task2,style-cot,claude-haiku-4-5,Accuracy,0.8320773674956041
-task2,style-cot,claude-haiku-4-5,Precision,0.0
-task2,style-cot,claude-haiku-4-5,Recall,0.0
-task2,style-cot,claude-haiku-4-5,F-measure,0.0
-task2,style-default,claude-haiku-4-5,Accuracy,0.8320773674956041
-task2,style-default,claude-haiku-4-5,Precision,0.0
-task2,style-default,claude-haiku-4-5,Recall,0.0
-task2,style-default,claude-haiku-4-5,F-measure,0.0
-task2,style-few-shot,claude-haiku-4-5,Accuracy,0.8320773674956041
-task2,style-few-shot,claude-haiku-4-5,Precision,0.0
-task2,style-few-shot,claude-haiku-4-5,Recall,0.0
-task2,style-few-shot,claude-haiku-4-5,F-measure,0.0
-task2,style-1-shot,gpt-4o-mini,Accuracy,0.8320773674956041
-task2,style-1-shot,gpt-4o-mini,Precision,0.0
-task2,style-1-shot,gpt-4o-mini,Recall,0.0
-task2,style-1-shot,gpt-4o-mini,F-measure,0.0
-task2,style-few-shot,gpt-4o-mini,Accuracy,0.8320773674956041
-task2,style-few-shot,gpt-4o-mini,Precision,0.0
-task2,style-few-shot,gpt-4o-mini,Recall,0.0
-task2,style-few-shot,gpt-4o-mini,F-measure,0.0
-task2,style-default,gpt-4o-mini,Accuracy,0.8310725948254207
-task2,style-default,gpt-4o-mini,Precision,0.1
-task2,style-default,gpt-4o-mini,Recall,0.0007479431563201197
-task2,style-default,gpt-4o-mini,F-measure,0.0014847809948032665
-task2,style-cot,gpt-4o-mini,Accuracy,0.8320773674956041
-task2,style-cot,gpt-4o-mini,Precision,0.0
-task2,style-cot,gpt-4o-mini,Recall,0.0
-task2,style-cot,gpt-4o-mini,F-measure,0.0
-task2,style-few-shot,gemini-3-1-flash-lite-preview,Accuracy,0.8320773674956041
-task2,style-few-shot,gemini-3-1-flash-lite-preview,Precision,0.0
-task2,style-few-shot,gemini-3-1-flash-lite-preview,Recall,0.0
-task2,style-few-shot,gemini-3-1-flash-lite-preview,F-measure,0.0
-task2,style-default,gemini-3-1-flash-lite-preview,Accuracy,0.8320773674956041
-task2,style-default,gemini-3-1-flash-lite-preview,Precision,0.0
-task2,style-default,gemini-3-1-flash-lite-preview,Recall,0.0
-task2,style-default,gemini-3-1-flash-lite-preview,F-measure,0.0
-task2,style-cot,gemini-3-1-flash-lite-preview,Accuracy,0.8320773674956041
-task2,style-cot,gemini-3-1-flash-lite-preview,Precision,0.0
-task2,style-cot,gemini-3-1-flash-lite-preview,Recall,0.0
-task2,style-cot,gemini-3-1-flash-lite-preview,F-measure,0.0
-task2,style-1-shot,gemini-3-1-flash-lite-preview,Accuracy,0.8320773674956041
-task2,style-1-shot,gemini-3-1-flash-lite-preview,Precision,0.0
-task2,style-1-shot,gemini-3-1-flash-lite-preview,Recall,0.0
-task2,style-1-shot,gemini-3-1-flash-lite-preview,F-measure,0.0
-task3,style-cot,gemini-3-1-flash-lite-preview,Mean Accuracy@k,0.30606860158311344
-task3,style-cot,gemini-3-1-flash-lite-preview,Macro F1-score,0.187963412447688
-task3,style-cot,gemini-3-1-flash-lite-preview,Weighted F1-score,0.17896698645247444
-task3,style-cot,gemini-3-1-flash-lite-preview,Weighted Accuracy,0.0395778364116095
-task3,style-default,gemini-3-1-flash-lite-preview,Mean Accuracy@k,0.3034300791556728
-task3,style-default,gemini-3-1-flash-lite-preview,Macro F1-score,0.22762142133197266
-task3,style-default,gemini-3-1-flash-lite-preview,Weighted F1-score,0.195162479903026
-task3,style-default,gemini-3-1-flash-lite-preview,Weighted Accuracy,0.06068601583113457
-task3,style-1-shot,gemini-3-1-flash-lite-preview,Mean Accuracy@k,0.24010554089709762
-task3,style-1-shot,gemini-3-1-flash-lite-preview,Macro F1-score,0.14411423663417
-task3,style-1-shot,gemini-3-1-flash-lite-preview,Weighted F1-score,0.21198997272291895
-task3,style-1-shot,gemini-3-1-flash-lite-preview,Weighted Accuracy,0.2532981530343008
-task3,style-few-shot,gemini-3-1-flash-lite-preview,Mean Accuracy@k,0.2796833773087071
-task3,style-few-shot,gemini-3-1-flash-lite-preview,Macro F1-score,0.15893771422998523
-task3,style-few-shot,gemini-3-1-flash-lite-preview,Weighted F1-score,0.16405326450945326
-task3,style-few-shot,gemini-3-1-flash-lite-preview,Weighted Accuracy,0.11345646437994723
-task3,style-few-shot,claude-haiku-4-5,Mean Accuracy@k,0.24010554089709762
-task3,style-few-shot,claude-haiku-4-5,Macro F1-score,0.15608130502027812
-task3,style-few-shot,claude-haiku-4-5,Weighted F1-score,0.1603966641222103
-task3,style-few-shot,claude-haiku-4-5,Weighted Accuracy,0.1820580474934037
-task3,style-cot,claude-haiku-4-5,Mean Accuracy@k,0.28232189973614774
-task3,style-cot,claude-haiku-4-5,Macro F1-score,0.21223815066378776
-task3,style-cot,claude-haiku-4-5,Weighted F1-score,0.18751113888912538
-task3,style-cot,claude-haiku-4-5,Weighted Accuracy,0.158311345646438
-task3,style-1-shot,claude-haiku-4-5,Mean Accuracy@k,0.20316622691292877
-task3,style-1-shot,claude-haiku-4-5,Macro F1-score,0.10518132571517308
-task3,style-1-shot,claude-haiku-4-5,Weighted F1-score,0.18013287646743653
-task3,style-1-shot,claude-haiku-4-5,Weighted Accuracy,0.21899736147757257
-task3,style-default,claude-haiku-4-5,Mean Accuracy@k,0.24802110817941952
-task3,style-default,claude-haiku-4-5,Macro F1-score,0.18970083809424929
-task3,style-default,claude-haiku-4-5,Weighted F1-score,0.18318588266589456
-task3,style-default,claude-haiku-4-5,Weighted Accuracy,0.13984168865435356
-task3,style-cot,gpt-4o-mini,Mean Accuracy@k,0.24010554089709762
-task3,style-cot,gpt-4o-mini,Macro F1-score,0.12348136495197312
-task3,style-cot,gpt-4o-mini,Weighted F1-score,0.13022164534582767
-task3,style-cot,gpt-4o-mini,Weighted Accuracy,0.010554089709762533
-task3,style-few-shot,gpt-4o-mini,Mean Accuracy@k,0.19261213720316622
-task3,style-few-shot,gpt-4o-mini,Macro F1-score,0.12173424612449814
-task3,style-few-shot,gpt-4o-mini,Weighted F1-score,0.13321329266581797
-task3,style-few-shot,gpt-4o-mini,Weighted Accuracy,0.0633245382585752
-task3,style-1-shot,gpt-4o-mini,Mean Accuracy@k,0.1820580474934037
-task3,style-1-shot,gpt-4o-mini,Macro F1-score,0.1713014614531362
-task3,style-1-shot,gpt-4o-mini,Weighted F1-score,0.17583874960529758
+task1,style-1-shot,claude-haiku-4-5,Accuracy,0.6715039577836411
+task1,style-1-shot,claude-haiku-4-5,Precision,0.6090604026845637
+task1,style-1-shot,claude-haiku-4-5,Recall,0.9577836411609498
+task1,style-1-shot,claude-haiku-4-5,F-measure,0.7446153846153846
+task1,style-few-shot,claude-haiku-4-5,Accuracy,0.6675461741424802
+task1,style-few-shot,claude-haiku-4-5,Precision,0.6108202443280978
+task1,style-few-shot,claude-haiku-4-5,Recall,0.9234828496042217
+task1,style-few-shot,claude-haiku-4-5,F-measure,0.7352941176470589
+task1,style-cot,claude-haiku-4-5,Accuracy,0.658311345646438
+task1,style-cot,claude-haiku-4-5,Precision,0.5952380952380952
+task1,style-cot,claude-haiku-4-5,Recall,0.9894459102902374
+task1,style-cot,claude-haiku-4-5,F-measure,0.7433102081268583
+task1,style-default,claude-haiku-4-5,Accuracy,0.6807387862796834
+task1,style-default,claude-haiku-4-5,Precision,0.6234234234234234
+task1,style-default,claude-haiku-4-5,Recall,0.9129287598944591
+task1,style-default,claude-haiku-4-5,F-measure,0.7408993576017131
+task1,style-default,gpt-4o-mini,Accuracy,0.6701846965699209
+task1,style-default,gpt-4o-mini,Precision,0.6166365280289331
+task1,style-default,gpt-4o-mini,Recall,0.899736147757256
+task1,style-default,gpt-4o-mini,F-measure,0.7317596566523605
+task1,style-cot,gpt-4o-mini,Accuracy,0.5672823218997362
+task1,style-cot,gpt-4o-mini,Precision,0.5362731152204836
+task1,style-cot,gpt-4o-mini,Recall,0.9947229551451188
+task1,style-cot,gpt-4o-mini,F-measure,0.6968576709796673
+task1,style-few-shot,gpt-4o-mini,Accuracy,0.7084432717678101
+task1,style-few-shot,gpt-4o-mini,Precision,0.654296875
+task1,style-few-shot,gpt-4o-mini,Recall,0.8839050131926122
+task1,style-few-shot,gpt-4o-mini,F-measure,0.7519640852974186
+task1,style-1-shot,gpt-4o-mini,Accuracy,0.6899736147757256
+task1,style-1-shot,gpt-4o-mini,Precision,0.6323529411764706
+task1,style-1-shot,gpt-4o-mini,Recall,0.9076517150395779
+task1,style-1-shot,gpt-4o-mini,F-measure,0.7453954496208017
+task2,style-1-shot,gpt-4o-mini,Accuracy,0.8906999041227229
+task2,style-1-shot,gpt-4o-mini,Precision,0.41832669322709165
+task2,style-1-shot,gpt-4o-mini,Recall,0.5614973262032086
+task2,style-1-shot,gpt-4o-mini,F-measure,0.4794520547945205
+task2,style-default,gpt-4o-mini,Accuracy,0.9008106819265618
+task2,style-default,gpt-4o-mini,Precision,0.4578313253012048
+task2,style-default,gpt-4o-mini,Recall,0.6096256684491979
+task2,style-default,gpt-4o-mini,F-measure,0.5229357798165137
+task2,style-cot,gpt-4o-mini,Accuracy,0.8841285296981499
+task2,style-cot,gpt-4o-mini,Precision,0.40229885057471265
+task2,style-cot,gpt-4o-mini,Recall,0.5614973262032086
+task2,style-cot,gpt-4o-mini,F-measure,0.46875
+task2,style-few-shot,gpt-4o-mini,Accuracy,0.8616136919315404
+task2,style-few-shot,gpt-4o-mini,Precision,0.3273381294964029
+task2,style-few-shot,gpt-4o-mini,Recall,0.48663101604278075
+task2,style-few-shot,gpt-4o-mini,F-measure,0.3913978494623656
+task2,style-few-shot,claude-haiku-4-5,Accuracy,0.9271749755620723
+task2,style-few-shot,claude-haiku-4-5,Precision,0.5791666666666667
+task2,style-few-shot,claude-haiku-4-5,Recall,0.7433155080213903
+task2,style-few-shot,claude-haiku-4-5,F-measure,0.6510538641686182
+task2,style-default,claude-haiku-4-5,Accuracy,0.9231891103548857
+task2,style-default,claude-haiku-4-5,Precision,0.5638766519823789
+task2,style-default,claude-haiku-4-5,Recall,0.6844919786096256
+task2,style-default,claude-haiku-4-5,F-measure,0.6183574879227053
+task2,style-cot,claude-haiku-4-5,Accuracy,0.9334312285854136
+task2,style-cot,claude-haiku-4-5,Precision,0.6208530805687204
+task2,style-cot,claude-haiku-4-5,Recall,0.7005347593582888
+task2,style-cot,claude-haiku-4-5,F-measure,0.6582914572864321
+task2,style-1-shot,claude-haiku-4-5,Accuracy,0.8674463937621832
+task2,style-1-shot,claude-haiku-4-5,Precision,0.33840304182509506
+task2,style-1-shot,claude-haiku-4-5,Recall,0.47593582887700536
+task2,style-1-shot,claude-haiku-4-5,F-measure,0.39555555555555555
+task2,style-1-shot,gemini-3-1-flash-lite-preview,Accuracy,0.8927352510970259
+task2,style-1-shot,gemini-3-1-flash-lite-preview,Precision,0.4367816091954023
+task2,style-1-shot,gemini-3-1-flash-lite-preview,Recall,0.6096256684491979
+task2,style-1-shot,gemini-3-1-flash-lite-preview,F-measure,0.5089285714285714
+task2,style-cot,gemini-3-1-flash-lite-preview,Accuracy,0.948582412301778
+task2,style-cot,gemini-3-1-flash-lite-preview,Precision,0.6869158878504673
+task2,style-cot,gemini-3-1-flash-lite-preview,Recall,0.786096256684492
+task2,style-cot,gemini-3-1-flash-lite-preview,F-measure,0.7331670822942643
+task2,style-few-shot,gemini-3-1-flash-lite-preview,Accuracy,0.9148418491484185
+task2,style-few-shot,gemini-3-1-flash-lite-preview,Precision,0.5252100840336135
+task2,style-few-shot,gemini-3-1-flash-lite-preview,Recall,0.6684491978609626
+task2,style-few-shot,gemini-3-1-flash-lite-preview,F-measure,0.5882352941176471
+task2,style-default,gemini-3-1-flash-lite-preview,Accuracy,0.9230396902226524
+task2,style-default,gemini-3-1-flash-lite-preview,Precision,0.5588235294117647
+task2,style-default,gemini-3-1-flash-lite-preview,Recall,0.7112299465240641
+task2,style-default,gemini-3-1-flash-lite-preview,F-measure,0.6258823529411764
+task3,style-1-shot,gpt-4o-mini,Mean Accuracy@k,0.22955145118733508
+task3,style-1-shot,gpt-4o-mini,Macro F1-score,0.1726169132157757
+task3,style-1-shot,gpt-4o-mini,Weighted F1-score,0.16303071068588526
 task3,style-1-shot,gpt-4o-mini,Weighted Accuracy,0.18997361477572558
-task3,style-default,gpt-4o-mini,Mean Accuracy@k,0.21372031662269128
-task3,style-default,gpt-4o-mini,Macro F1-score,0.1281577635832588
-task3,style-default,gpt-4o-mini,Weighted F1-score,0.13692944807523585
-task3,style-default,gpt-4o-mini,Weighted Accuracy,0.026385224274406333
-task4,style-cot,gemini-3-1-flash-lite-preview,Average BLEU Score,0.007939288774790656
+task3,style-cot,gpt-4o-mini,Mean Accuracy@k,0.30606860158311344
+task3,style-cot,gpt-4o-mini,Macro F1-score,0.16112124930661756
+task3,style-cot,gpt-4o-mini,Weighted F1-score,0.1519689249158597
+task3,style-cot,gpt-4o-mini,Weighted Accuracy,0.013192612137203167
+task3,style-few-shot,gpt-4o-mini,Mean Accuracy@k,0.22691292875989447
+task3,style-few-shot,gpt-4o-mini,Macro F1-score,0.15527064393061443
+task3,style-few-shot,gpt-4o-mini,Weighted F1-score,0.13689764957112205
+task3,style-few-shot,gpt-4o-mini,Weighted Accuracy,0.06068601583113457
+task3,style-default,gpt-4o-mini,Mean Accuracy@k,0.2638522427440633
+task3,style-default,gpt-4o-mini,Macro F1-score,0.1458199962147725
+task3,style-default,gpt-4o-mini,Weighted F1-score,0.14340901516523769
+task3,style-default,gpt-4o-mini,Weighted Accuracy,0.029023746701846966
+task3,style-default,gemini-3-1-flash-lite-preview,Mean Accuracy@k,0.36939313984168864
+task3,style-default,gemini-3-1-flash-lite-preview,Macro F1-score,0.23635409996596088
+task3,style-default,gemini-3-1-flash-lite-preview,Weighted F1-score,0.20061126113220212
+task3,style-default,gemini-3-1-flash-lite-preview,Weighted Accuracy,0.06068601583113457
+task3,style-1-shot,gemini-3-1-flash-lite-preview,Mean Accuracy@k,0.2849604221635884
+task3,style-1-shot,gemini-3-1-flash-lite-preview,Macro F1-score,0.205268058976187
+task3,style-1-shot,gemini-3-1-flash-lite-preview,Weighted F1-score,0.19403118694823712
+task3,style-1-shot,gemini-3-1-flash-lite-preview,Weighted Accuracy,0.2532981530343008
+task3,style-few-shot,gemini-3-1-flash-lite-preview,Mean Accuracy@k,0.3482849604221636
+task3,style-few-shot,gemini-3-1-flash-lite-preview,Macro F1-score,0.19874192342379013
+task3,style-few-shot,gemini-3-1-flash-lite-preview,Weighted F1-score,0.19333796750817966
+task3,style-few-shot,gemini-3-1-flash-lite-preview,Weighted Accuracy,0.11873350923482849
+task3,style-cot,gemini-3-1-flash-lite-preview,Mean Accuracy@k,0.3720316622691293
+task3,style-cot,gemini-3-1-flash-lite-preview,Macro F1-score,0.1984353120394212
+task3,style-cot,gemini-3-1-flash-lite-preview,Weighted F1-score,0.19139744853054444
+task3,style-cot,gemini-3-1-flash-lite-preview,Weighted Accuracy,0.036939313984168866
+task3,style-few-shot,claude-haiku-4-5,Mean Accuracy@k,0.3113456464379947
+task3,style-few-shot,claude-haiku-4-5,Macro F1-score,0.23332424108009406
+task3,style-few-shot,claude-haiku-4-5,Weighted F1-score,0.1960750806133233
+task3,style-few-shot,claude-haiku-4-5,Weighted Accuracy,0.19525065963060687
+task3,style-cot,claude-haiku-4-5,Mean Accuracy@k,0.3482849604221636
+task3,style-cot,claude-haiku-4-5,Macro F1-score,0.2765648120567256
+task3,style-cot,claude-haiku-4-5,Weighted F1-score,0.20344318726472754
+task3,style-cot,claude-haiku-4-5,Weighted Accuracy,0.15567282321899736
+task3,style-default,claude-haiku-4-5,Mean Accuracy@k,0.3007915567282322
+task3,style-default,claude-haiku-4-5,Macro F1-score,0.2529431430396407
+task3,style-default,claude-haiku-4-5,Weighted F1-score,0.1819094302860666
+task3,style-default,claude-haiku-4-5,Weighted Accuracy,0.12928759894459102
+task3,style-1-shot,claude-haiku-4-5,Mean Accuracy@k,0.2612137203166227
+task3,style-1-shot,claude-haiku-4-5,Macro F1-score,0.17166815068458482
+task3,style-1-shot,claude-haiku-4-5,Weighted F1-score,0.17458709165388944
+task3,style-1-shot,claude-haiku-4-5,Weighted Accuracy,0.21899736147757257
+task4,style-cot,gemini-3-1-flash-lite-preview,Average BLEU Score,0.020844710699701632
 task4,style-cot,gemini-3-1-flash-lite-preview,Exact Match Rate,0.0
-task4,style-cot,gemini-3-1-flash-lite-preview,Average Jaccard Similarity,0.021234443694689485
-task4,style-1-shot,gemini-3-1-flash-lite-preview,Average BLEU Score,0.015074427965901192
-task4,style-1-shot,gemini-3-1-flash-lite-preview,Exact Match Rate,0.0
-task4,style-1-shot,gemini-3-1-flash-lite-preview,Average Jaccard Similarity,0.04627995667000626
-task4,style-few-shot,gemini-3-1-flash-lite-preview,Average BLEU Score,0.01956354850852015
-task4,style-few-shot,gemini-3-1-flash-lite-preview,Exact Match Rate,0.0
-task4,style-few-shot,gemini-3-1-flash-lite-preview,Average Jaccard Similarity,0.05502927399986772
-task4,style-default,gemini-3-1-flash-lite-preview,Average BLEU Score,0.02334127094851311
+task4,style-cot,gemini-3-1-flash-lite-preview,Average Jaccard Similarity,0.061470532258252775
+task4,style-default,gemini-3-1-flash-lite-preview,Average BLEU Score,0.02356224017960437
 task4,style-default,gemini-3-1-flash-lite-preview,Exact Match Rate,0.0
-task4,style-default,gemini-3-1-flash-lite-preview,Average Jaccard Similarity,0.07008347973882895
-task4,style-cot,gpt-4o-mini,Average BLEU Score,0.0
+task4,style-default,gemini-3-1-flash-lite-preview,Average Jaccard Similarity,0.07094645600389309
+task4,style-1-shot,gemini-3-1-flash-lite-preview,Average BLEU Score,0.016472712020077263
+task4,style-1-shot,gemini-3-1-flash-lite-preview,Exact Match Rate,0.0
+task4,style-1-shot,gemini-3-1-flash-lite-preview,Average Jaccard Similarity,0.05103947174905578
+task4,style-few-shot,gemini-3-1-flash-lite-preview,Average BLEU Score,0.019624104470368393
+task4,style-few-shot,gemini-3-1-flash-lite-preview,Exact Match Rate,0.0
+task4,style-few-shot,gemini-3-1-flash-lite-preview,Average Jaccard Similarity,0.05549423232607078
+task4,style-cot,gpt-4o-mini,Average BLEU Score,0.006685273731146728
 task4,style-cot,gpt-4o-mini,Exact Match Rate,0.0
-task4,style-cot,gpt-4o-mini,Average Jaccard Similarity,0.0
-task4,style-1-shot,gpt-4o-mini,Average BLEU Score,0.003047230850841755
+task4,style-cot,gpt-4o-mini,Average Jaccard Similarity,0.029782015998930808
+task4,style-1-shot,gpt-4o-mini,Average BLEU Score,0.0061464806559976765
 task4,style-1-shot,gpt-4o-mini,Exact Match Rate,0.0
-task4,style-1-shot,gpt-4o-mini,Average Jaccard Similarity,0.011887784489971569
-task4,style-few-shot,gpt-4o-mini,Average BLEU Score,0.002693604829903714
-task4,style-few-shot,gpt-4o-mini,Exact Match Rate,0.0
-task4,style-few-shot,gpt-4o-mini,Average Jaccard Similarity,0.00768539884873261
-task4,style-default,gpt-4o-mini,Average BLEU Score,0.0
+task4,style-1-shot,gpt-4o-mini,Average Jaccard Similarity,0.025032882639034932
+task4,style-default,gpt-4o-mini,Average BLEU Score,0.010796096188066328
 task4,style-default,gpt-4o-mini,Exact Match Rate,0.0
-task4,style-default,gpt-4o-mini,Average Jaccard Similarity,0.0
-task4,style-default,claude-haiku-4-5,Average BLEU Score,0.013514963071435302
+task4,style-default,gpt-4o-mini,Average Jaccard Similarity,0.04222285113355533
+task4,style-few-shot,gpt-4o-mini,Average BLEU Score,0.013613823248581819
+task4,style-few-shot,gpt-4o-mini,Exact Match Rate,0.0
+task4,style-few-shot,gpt-4o-mini,Average Jaccard Similarity,0.04441027890252546
+task4,style-default,claude-haiku-4-5,Average BLEU Score,0.0191196173620149
 task4,style-default,claude-haiku-4-5,Exact Match Rate,0.0
-task4,style-default,claude-haiku-4-5,Average Jaccard Similarity,0.04735076859292033
-task4,style-few-shot,claude-haiku-4-5,Average BLEU Score,0.015476882834745234
-task4,style-few-shot,claude-haiku-4-5,Exact Match Rate,0.0
-task4,style-few-shot,claude-haiku-4-5,Average Jaccard Similarity,0.04564000652461674
-task4,style-cot,claude-haiku-4-5,Average BLEU Score,0.004854528455777451
+task4,style-default,claude-haiku-4-5,Average Jaccard Similarity,0.0669827346347817
+task4,style-cot,claude-haiku-4-5,Average BLEU Score,0.017691128359456066
 task4,style-cot,claude-haiku-4-5,Exact Match Rate,0.0
-task4,style-cot,claude-haiku-4-5,Average Jaccard Similarity,0.018489323557396284
-task4,style-1-shot,claude-haiku-4-5,Average BLEU Score,0.008615837293141956
+task4,style-cot,claude-haiku-4-5,Average Jaccard Similarity,0.060807832444128226
+task4,style-few-shot,claude-haiku-4-5,Average BLEU Score,0.017230893677873425
+task4,style-few-shot,claude-haiku-4-5,Exact Match Rate,0.0
+task4,style-few-shot,claude-haiku-4-5,Average Jaccard Similarity,0.04944220965689475
+task4,style-1-shot,claude-haiku-4-5,Average BLEU Score,0.015209517488708304
 task4,style-1-shot,claude-haiku-4-5,Exact Match Rate,0.0
-task4,style-1-shot,claude-haiku-4-5,Average Jaccard Similarity,0.020513162144078296
+task4,style-1-shot,claude-haiku-4-5,Average Jaccard Similarity,0.044988684182066876
